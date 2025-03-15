@@ -1,12 +1,13 @@
 import com.sun.net.httpserver.HttpServer
 import controller.AuthController
-import model.Token
+import database.Database
 import repository.TokenRepository
 import repository.UserRepository
 import service.UserService
 import java.net.InetSocketAddress
 
 fun main(args: Array<String>) {
+    Database
     val userRepository = UserRepository()
     val tokenRepository = TokenRepository()
     val userService = UserService(userRepository, tokenRepository)

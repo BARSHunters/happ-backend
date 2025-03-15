@@ -1,5 +1,6 @@
 package service
 
+import io.github.cdimascio.dotenv.dotenv
 import model.Token
 import model.TokenType
 import model.User
@@ -7,14 +8,19 @@ import repository.TokenRepository
 import repository.UserRepository
 import utils.JwtTokenUtil
 import utils.PasswordHasher
+import java.time.LocalDateTime
 import java.util.*
 
 class UserService(private val userRepository: UserRepository, private val tokenRepository: TokenRepository) {
 
+    private val dotenv = dotenv()
+    private val jwtExpirationSeconds = dotenv["JWT_EXPIRATION"].toLong()/100
 
     // TODO добавить хэширование пароля
     fun register(username: String, password: String): String? {
-        val existingUser = userRepository.findUserByUsername(username) ?: return null
+         if (userRepository.findUserByUsername(username) != null){
+             return null
+         }
         val hashedPassword = PasswordHasher.hash(password)
         if (userRepository.createUser(username, hashedPassword)) {
             val newToken = Token(
@@ -22,8 +28,8 @@ class UserService(private val userRepository: UserRepository, private val tokenR
                 JwtTokenUtil.createToken(username),
                 TokenType.BEARER,
                 revoked = false,
-                expired = false,
-                user = existingUser
+                expiredAt = LocalDateTime.now().plusSeconds(jwtExpirationSeconds),
+                userUsername = username
             )
             tokenRepository.save(newToken)
             return newToken.token
@@ -35,16 +41,14 @@ class UserService(private val userRepository: UserRepository, private val tokenR
     // TODO добавить аутентификацию пользователя
     fun login(username: String, password: String): String? {
         val existingUser = userRepository.findUserByUsername(username)
-        val hashedPassword = PasswordHasher.hash(existingUser.password)
-        if (existingUser != null && PasswordHasher.verify(password, hashedPassword)) {
-            revokeAllUserTokens(existingUser)
+        if (existingUser != null && PasswordHasher.verify(password, existingUser.password)) {
             val newToken = Token(
                 UUID.randomUUID(),
                 JwtTokenUtil.createToken(username),
                 TokenType.BEARER,
                 revoked = false,
-                expired = false,
-                user = existingUser
+                expiredAt = LocalDateTime.now().plusSeconds(jwtExpirationSeconds),
+                userUsername = username
             )
             tokenRepository.save(newToken)
             return newToken.token
@@ -52,14 +56,4 @@ class UserService(private val userRepository: UserRepository, private val tokenR
         return null
     }
 
-    private fun revokeAllUserTokens(user: User) {
-        val validUserTokens = tokenRepository.findAllValidTokenByUser(user.username)
-        if (validUserTokens?.isEmpty() == true)
-            return
-        validUserTokens?.forEach {
-            it.expired = true
-            it.revoked = true
-        }
-//        tokenRepository.saveAll(validUserTokens!!)
-    }
 }

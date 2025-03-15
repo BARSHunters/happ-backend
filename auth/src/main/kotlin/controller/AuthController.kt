@@ -23,7 +23,7 @@ class AuthController(private val userService: UserService) {
             sendResponse(exchange, jsonResponse, 200)
         }
         else {
-            val errorResponse = """{"error": "Bad request"}"""
+            val errorResponse = """{"error": "The user with this username already exists"}"""
             sendResponse(exchange, errorResponse, 400)
         }
     }
@@ -35,9 +35,9 @@ class AuthController(private val userService: UserService) {
 
             val requestBody = exchange.requestBody.bufferedReader().use { it.readText() }
             println("Login request: $requestBody")
-            val registerRequest = Json.decodeFromString<LoginDto>(requestBody)
+            val loginRequest = Json.decodeFromString<LoginDto>(requestBody)
 
-            val token = userService.login(registerRequest.username, registerRequest.password)
+            val token = userService.login(loginRequest.username, loginRequest.password)
             if (token != null) {
                 println("jwt: $token")
                 val response = LoginResponse(jwt = token)

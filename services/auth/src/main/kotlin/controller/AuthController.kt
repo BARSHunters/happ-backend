@@ -9,27 +9,43 @@ import model.ErrorType
 import model.request.LoginDto
 import model.request.RegisterDto
 import model.request.RequestWrapper
-import model.response.ErrorDto
-import model.response.ErrorWrapper
-import model.response.LoginResponse
-import model.response.ResponseWrapper
+import model.response.*
 import registerRequest
 import service.UserService
+import validation.AuthValidator
+import validation.UserDataValidator
 
 class AuthController(private val userService: UserService) {
-
-    // TODO добавить логику ответа для сервисов и фронта
     fun handleRegister(requestBody: String){
         println("Register request: $requestBody")
         val registerRequest: RequestWrapper<RegisterDto> = Json.decodeFromString(requestBody)
         val registerDto = registerRequest.dto
         try {
-            val token = userService.register(registerDto.username, registerDto.password)
-            if (token != null) {
-                val response = LoginResponse(jwt = token)
-                sendResponse("registerResponse", registerRequest.id, response)
+            if (AuthValidator.authValidation(registerDto.username, registerDto.password) &&
+                UserDataValidator.userDataValidation(
+                    registerDto.name, registerDto.heightCm, registerDto.weightKg)) {
+
+                val token = userService.register(registerDto.username, registerDto.password)
+                if (token != null) {
+                    val response = LoginResponse(jwt = token)
+                    sendResponse("registerResponse", registerRequest.id, response)
+                    val userDataRequest = UserDataDto(
+                        username = registerDto.username,
+                        name = registerDto.name,
+                        birthDate = registerDto.birthDate,
+                        gender = registerDto.gender,
+                        heightCm = registerDto.heightCm,
+                        weightKg = registerDto.weightKg,
+                        weightDesire = registerDto.weightDesire
+                    )
+                    sendRequest("createUserDataRequest", userDataRequest)
+                } else {
+                    val errorMessage = "User with this username already exists"
+                    val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+                    sendError(registerRequest.id, error)
+                }
             } else {
-                val errorMessage = "User with this username already exists"
+                val errorMessage = "Data is not valid"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
                 sendError(registerRequest.id, error)
             }
@@ -41,22 +57,28 @@ class AuthController(private val userService: UserService) {
         }
     }
 
-    // TODO добавить логику для end-point login
     fun handleLogin(requestBody: String){
         println("Login request: $requestBody")
         val loginRequest: RequestWrapper<LoginDto> = Json.decodeFromString(requestBody)
         val loginDto = loginRequest.dto
         try {
-            val token = userService.login(loginDto.username, loginDto.password)
-            if (token != null) {
-                val response = LoginResponse(jwt = token)
-                sendResponse("loginResponse", loginRequest.id, response)
+            if (AuthValidator.authValidation(loginDto.username, loginDto.password)) {
 
+                val token = userService.login(loginDto.username, loginDto.password)
+                if (token != null) {
+                    val response = LoginResponse(jwt = token)
+                    sendResponse("loginResponse", loginRequest.id, response)
+
+                } else {
+                    val errorMessage = "User unauthorized!"
+                    val error = ErrorDto(ErrorType.UNAUTHORIZED, errorMessage)
+                    sendError(loginRequest.id, error)
+
+                }
             } else {
-                val errorMessage = "User unauthorized!"
-                val error = ErrorDto(ErrorType.UNAUTHORIZED, errorMessage)
+                val errorMessage = "Data is not valid"
+                val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
                 sendError(loginRequest.id, error)
-
             }
         }catch (e: Exception){
             e.printStackTrace()
@@ -66,6 +88,10 @@ class AuthController(private val userService: UserService) {
         }
     }
 
+    private fun sendRequest(channel: String, dto: Any){
+        val requestJson = Json.encodeToString(dto)
+        sendEvent(channel, requestJson)
+    }
     private fun sendResponse(channel: String, id: Int, dto: Any){
         val response = ResponseWrapper(id, dto)
         val responseJson = Json.encodeToString(response)

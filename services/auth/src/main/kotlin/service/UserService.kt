@@ -56,4 +56,20 @@ class UserService(private val userRepository: UserRepository, private val tokenR
         return null
     }
 
+    fun validateJwtToken(token: String): Boolean {
+        if (!JwtTokenUtil.verifyToken(token)) {
+            return false
+        }
+        val dbToken = tokenRepository.findByToken(token) ?: return false
+        return !(dbToken.revoked || dbToken.expiredAt.isBefore(LocalDateTime.now()))
+    }
+
+    fun  revokeJwtToken(token: String): Boolean {
+        if (!JwtTokenUtil.verifyToken(token)) {
+            return false
+        }
+        val dbToken = tokenRepository.findByToken(token) ?: return false
+        dbToken.revoked = true
+        return tokenRepository.revokeToken(dbToken)
+    }
 }

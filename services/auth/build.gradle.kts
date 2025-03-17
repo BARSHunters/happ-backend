@@ -13,6 +13,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":shared"))
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("org.postgresql:postgresql:42.5.6")

@@ -1,62 +1,79 @@
 package controller
 
 import com.sun.net.httpserver.HttpExchange
+import keydb.sendEvent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import loginRequest
+import model.ErrorType
 import model.request.LoginDto
 import model.request.RegisterDto
+import model.request.RequestWrapper
+import model.response.ErrorDto
+import model.response.ErrorWrapper
 import model.response.LoginResponse
+import model.response.ResponseWrapper
+import registerRequest
 import service.UserService
 
 class AuthController(private val userService: UserService) {
 
     // TODO добавить логику ответа для сервисов и фронта
-    fun handleRegister(exchange: HttpExchange){
-        val requestBody = exchange.requestBody.bufferedReader().use { it.readText() }
+    fun handleRegister(requestBody: String){
         println("Register request: $requestBody")
-        val registerRequest = Json.decodeFromString<RegisterDto>(requestBody)
-
-        val token = userService.register(registerRequest.username, registerRequest.password)
-        if (token != null){
-            val response = LoginResponse(jwt = token)
-            val jsonResponse = Json.encodeToString(response)
-            sendResponse(exchange, jsonResponse, 200)
-        }
-        else {
-            val errorResponse = """{"error": "The user with this username already exists"}"""
-            sendResponse(exchange, errorResponse, 400)
+        val registerRequest: RequestWrapper<RegisterDto> = Json.decodeFromString(requestBody)
+        val registerDto = registerRequest.dto
+        try {
+            val token = userService.register(registerDto.username, registerDto.password)
+            if (token != null) {
+                val response = LoginResponse(jwt = token)
+                sendResponse("registerResponse", registerRequest.id, response)
+            } else {
+                val errorMessage = "User with this username already exists"
+                val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+                sendError(registerRequest.id, error)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Internal Server Error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendError(registerRequest.id, error)
         }
     }
 
     // TODO добавить логику для end-point login
-    fun handleLogin(exchange: HttpExchange){
+    fun handleLogin(requestBody: String){
+        println("Login request: $requestBody")
+        val loginRequest: RequestWrapper<LoginDto> = Json.decodeFromString(requestBody)
+        val loginDto = loginRequest.dto
         try {
-
-
-            val requestBody = exchange.requestBody.bufferedReader().use { it.readText() }
-            println("Login request: $requestBody")
-            val loginRequest = Json.decodeFromString<LoginDto>(requestBody)
-
-            val token = userService.login(loginRequest.username, loginRequest.password)
+            val token = userService.login(loginDto.username, loginDto.password)
             if (token != null) {
-                println("jwt: $token")
                 val response = LoginResponse(jwt = token)
-                val jsonResponse = Json.encodeToString(response)
-                sendResponse(exchange, jsonResponse, 200)
+                sendResponse("loginResponse", loginRequest.id, response)
 
             } else {
-                val errorResponse = """{"error": "User unauthorized"}"""
-                sendResponse(exchange, errorResponse, 401)
+                val errorMessage = "User unauthorized!"
+                val error = ErrorDto(ErrorType.UNAUTHORIZED, errorMessage)
+                sendError(loginRequest.id, error)
+
             }
         }catch (e: Exception){
             e.printStackTrace()
-            sendResponse(exchange, "Internal Server Error", 500)
+            val errorMessage = "Internal Server Error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendError(loginRequest.id, error)
         }
     }
 
-    private fun sendResponse(exchange: HttpExchange, responseMessage: String, rCode: Int){
-        exchange.responseHeaders.add("Content-Type", "application/json")
-        exchange.sendResponseHeaders(rCode, responseMessage.toByteArray().size.toLong())
-        exchange.responseBody.use { it.write(responseMessage.toByteArray()) }
+    private fun sendResponse(channel: String, id: Int, dto: Any){
+        val response = ResponseWrapper(id, dto)
+        val responseJson = Json.encodeToString(response)
+        sendEvent(channel, responseJson)
+    }
+    private fun sendError(id: Int, dto: ErrorDto){
+        val response = ErrorWrapper(id, dto)
+        val responseJson = Json.encodeToString(response)
+        sendEvent("error", responseJson)
     }
 }

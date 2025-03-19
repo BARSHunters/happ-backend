@@ -1,6 +1,7 @@
 package controller
 
 import keydb.sendEvent
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.ErrorType
@@ -15,7 +16,15 @@ import validation.UserDataValidator
 class AuthController(private val userService: UserService) {
     fun handleRegister(requestBody: String){
         println("Register request: $requestBody")
-        val registerRequest: RequestWrapper<RegisterDto> = Json.decodeFromString(requestBody)
+        val registerRequest: RequestWrapper<RegisterDto> = try {
+            Json.decodeFromString(requestBody)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendError(-1, error)  // ID -1, если его не удалось извлечь
+            return
+        }
         val registerDto = registerRequest.dto
         try {
             if (AuthValidator.authValidation(registerDto.username, registerDto.password) &&
@@ -56,7 +65,15 @@ class AuthController(private val userService: UserService) {
 
     fun handleLogin(requestBody: String){
         println("Login request: $requestBody")
-        val loginRequest: RequestWrapper<LoginDto> = Json.decodeFromString(requestBody)
+        val loginRequest: RequestWrapper<LoginDto> = try {
+            Json.decodeFromString(requestBody)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendError(-1, error)
+            return
+        }
         val loginDto = loginRequest.dto
         try {
             if (AuthValidator.authValidation(loginDto.username, loginDto.password)) {

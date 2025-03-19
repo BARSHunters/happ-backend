@@ -1,0 +1,444 @@
+import keydb.runServiceListener
+import keydb.sendEvent
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.sql.DriverManager
+import java.sql.SQLException
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+/**
+ * Ответ от сервиса активности.
+ * @property userId Идентификатор пользователя.
+ * @property activities Список записей активности.
+ */
+@Serializable
+data class ActivityResponse(
+    val userId: String,
+    val activities: List<ActivityRecord>,
+)
+
+/**
+ * Запись активности.
+ * @property date Дата активности.
+ * @property calories Количество сожжённых калорий.
+ */
+@Serializable
+data class ActivityRecord(
+    val date: String,
+    val calories: Double,
+)
+
+/**
+ * Запись истории веса.
+ * @property dateTime Дата и время записи.
+ * @property weight Вес пользователя.
+ */
+@Serializable
+data class WeightHistoryEntry(val dateTime: String, val weight: Double)
+
+/**
+ * Ответ от сервиса пользовательских данных.
+ * @property userId Идентификатор пользователя.
+ * @property weight Вес пользователя.
+ * @property age Возраст пользователя.
+ * @property gender Пол пользователя.
+ */
+@Serializable
+data class UserDataResponse(
+    val userId: String,
+    val weight: Double,
+    val age: Int,
+    val gender: String,
+)
+
+/**
+ * Ответ от сервиса питания.
+ * @property userId Идентификатор пользователя.
+ * @property nutritionData Данные о питании.
+ */
+@Serializable
+data class NutritionResponse(
+    val userId: String,
+    val nutritionData: List<Pair<String, Map<String, Double>>>,
+)
+
+/**
+ * Сервис для работы с историей веса пользователя.
+ * @property url URL базы данных.
+ * @property user Имя пользователя базы данных.
+ * @property password Пароль базы данных.
+ */
+class WeightHistoryService(
+    internal var url: String = "jdbc:postgresql://localhost:5432/weightdb",
+    internal var user: String = "postgres",
+    internal var password: String = "password",
+) {
+    internal var userId: String = ""
+    internal var weightControlWish: String = "keep"
+    internal var weightHistory: List<WeightHistoryEntry> = emptyList()
+    internal var activityData: Map<String, Double> = emptyMap()
+    internal var nutritionData: List<Pair<String, Map<String, Double>>> = emptyList()
+    internal var age: Int = 30
+    internal var gender: String = "male"
+    internal var height: Int = 176
+
+    /**
+     * Обработчик запроса от NutritionService.
+     * @param message Сообщение с идентификатором пользователя.
+     */
+    internal fun handleNutritionWishRequest(message: String) {
+        try {
+            val userId = Json.decodeFromString<String>(message)
+            val wish = fetchWeightControlWishFromDB(userId)
+            sendEvent("response_nutrition_wish", Json.encodeToString(wish))
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to handle nutrition wish request", e)
+        }
+    }
+
+    /**
+     * Обработчик запроса от UserDataService.
+     * @param message Сообщение с данными о весе пользователя.
+     */
+    internal fun handleNewWeightRequest(message: String) {
+        try {
+            val (userId, weight) = Json.decodeFromString<Pair<String, Double>>(message)
+            validateWeight(weight)
+            saveWeightToDB(userId, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), weight)
+            println("New weight saved for user: $userId, weight: $weight")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to handle new weight request", e)
+        }
+    }
+
+    /**
+     * Обработчик ответа от ActivityService.
+     * @param message Сообщение с данными о активности.
+     */
+    internal fun handleActivityResponse(message: String) {
+        try {
+            val response = Json.decodeFromString<ActivityResponse>(message)
+            activityData = response.activities.associate { it.date to it.calories }
+            println("Activity data received for user: ${response.userId}")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to handle activity response", e)
+        }
+    }
+
+    /**
+     * Обработчик ответа от UserDataService.
+     * @param message Сообщение с данными о пользователе.
+     */
+    internal fun handleUserDataResponse(message: String) {
+        try {
+            val response = Json.decodeFromString<UserDataResponse>(message)
+            this.age = response.age
+            validateWeight(response.weight)
+            saveWeightToDB(userId, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
+            this.gender = response.gender
+            this.height = if (response.gender == "male") 176 else 164
+            println("User data received: $response")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to handle user data response", e)
+        }
+    }
+
+    /**
+     * Обработчик ответа от NutritionService.
+     * @param message Сообщение с данными о питании.
+     */
+    internal fun handleNutritionResponse(message: String) {
+        try {
+            val response = Json.decodeFromString<NutritionResponse>(message)
+            this.nutritionData = response.nutritionData
+            println("Nutrition data received for user: ${response.userId}")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to handle nutrition response", e)
+        }
+    }
+
+    /**
+     * Основная функция для запуска сервиса.
+     */
+    fun main(): Unit =
+        runServiceListener(
+            mapOf(
+                "response_activity_data" to ::handleActivityResponse,
+                "response_user_data" to ::handleUserDataResponse,
+                "response_nutrition_data" to ::handleNutritionResponse,
+                "request_nutrition_wish" to ::handleNutritionWishRequest,
+                "request_new_weight" to ::handleNewWeightRequest,
+            ),
+        )
+
+    /**
+     * Обрабатывает запрос на получение истории веса и прогноза.
+     * @param userId Идентификатор пользователя.
+     * @param weightControlWish Пожелание по контролю веса (по умолчанию "keep").
+     * @return Результат обработки запроса.
+     */
+    fun processRequest(
+        userId: String,
+        weightControlWish: String = "keep",
+    ): Map<String, Any> {
+        try {
+            this.userId = userId
+            this.weightControlWish = weightControlWish
+
+            saveWeightControlWishToDB(userId, weightControlWish)
+            this.weightHistory = fetchWeightHistoryFromDB(userId)
+
+            fetchActivityData(userId)
+            fetchUserData(userId)
+            fetchNutritionData(userId)
+
+            val predictedWeight = calculatePredictedWeight()
+            addPredictedWeight(predictedWeight)
+
+            return mapOf(
+                "user_id" to userId,
+                "weight_history" to weightHistory.associate { it.dateTime to it.weight },
+            )
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to process request", e)
+        }
+    }
+
+    /**
+     * Сохраняет пожелание по контролю веса в базу данных.
+     * @param userId Идентификатор пользователя.
+     * @param wish Пожелание по контролю веса.
+     */
+    internal fun saveWeightControlWishToDB(
+        userId: String,
+        wish: String,
+    ) {
+        try {
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.prepareStatement(
+                    """
+                    CREATE TABLE IF NOT EXISTS user_settings (
+                        user_id TEXT PRIMARY KEY,
+                        weight_control_wish TEXT,
+                        weight_history JSONB
+                    )
+                """,
+                ).execute()
+
+                conn.prepareStatement(
+                    """
+                    INSERT INTO user_settings (user_id, weight_control_wish)
+                    VALUES (?, ?)
+                    ON CONFLICT (user_id) DO UPDATE SET
+                        weight_control_wish = EXCLUDED.weight_control_wish
+                """,
+                ).apply {
+                    setString(1, userId)
+                    setString(2, wish)
+                    executeUpdate()
+                }
+            }
+            println("Weight control wish saved for user: $userId")
+        } catch (e: SQLException) {
+            throw RuntimeException("Failed to save weight control wish", e)
+        }
+    }
+
+    /**
+     * Получает пожелание по контролю веса из базы данных.
+     * @param userId Идентификатор пользователя.
+     * @return Пожелание по контролю веса.
+     */
+    internal fun fetchWeightControlWishFromDB(userId: String): String {
+        return try {
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.prepareStatement(
+                    """
+                    SELECT weight_control_wish FROM user_settings WHERE user_id = ?
+                """,
+                ).apply {
+                    setString(1, userId)
+                }.executeQuery().let { rs ->
+                    if (rs.next()) rs.getString("weight_control_wish") ?: "keep" else "keep"
+                }
+            }
+        } catch (e: SQLException) {
+            throw RuntimeException("Failed to fetch weight control wish", e)
+        }
+    }
+
+    /**
+     * Сохраняет вес пользователя в базу данных.
+     * @param userId Идентификатор пользователя.
+     * @param dateTime Дата и время записи.
+     * @param weight Вес пользователя.
+     */
+    internal fun saveWeightToDB(
+        userId: String,
+        dateTime: String,
+        weight: Double,
+    ) {
+        try {
+            validateWeight(weight)
+            validateDateTime(dateTime)
+
+            DriverManager.getConnection(url, user, password).use { conn ->
+                val currentHistory = fetchWeightHistoryFromDB(userId)
+                val newHistory = currentHistory + WeightHistoryEntry(dateTime, weight)
+                val jsonHistory = Json.encodeToString(newHistory)
+
+                conn.prepareStatement(
+                    """
+                    INSERT INTO user_settings (user_id, weight_history)
+                    VALUES (?, ?::JSONB)
+                    ON CONFLICT (user_id) DO UPDATE SET
+                        weight_history = EXCLUDED.weight_history
+                """,
+                ).apply {
+                    setString(1, userId)
+                    setString(2, jsonHistory)
+                    executeUpdate()
+                }
+            }
+            println("Weight saved for user: $userId")
+        } catch (e: SQLException) {
+            throw RuntimeException("Failed to save weight to database", e)
+        }
+    }
+
+    /**
+     * Получает историю веса пользователя из базы данных.
+     * @param userId Идентификатор пользователя.
+     * @return Список записей истории веса.
+     */
+    internal fun fetchWeightHistoryFromDB(userId: String): List<WeightHistoryEntry> {
+        return try {
+            DriverManager.getConnection(url, user, password).use { conn ->
+                conn.prepareStatement(
+                    """
+                    SELECT weight_history FROM user_settings WHERE user_id = ?
+                """,
+                ).apply {
+                    setString(1, userId)
+                }.executeQuery().let { rs ->
+                    if (rs.next()) {
+                        Json.decodeFromString(rs.getString("weight_history"))
+                    } else {
+                        emptyList()
+                    }
+                }
+            }
+        } catch (e: SQLException) {
+            throw RuntimeException("Failed to fetch weight history", e)
+        }
+    }
+
+    /**
+     * Запрашивает данные о активности пользователя.
+     * @param userId Идентификатор пользователя.
+     */
+    internal fun fetchActivityData(userId: String) {
+        try {
+            sendEvent("request_activity_data", Json.encodeToString(userId))
+            println("Activity data requested for user: $userId")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to fetch activity data", e)
+        }
+    }
+
+    /**
+     * Запрашивает данные о пользователе.
+     * @param userId Идентификатор пользователя.
+     */
+    internal fun fetchUserData(userId: String) {
+        try {
+            sendEvent("request_user_data", Json.encodeToString(userId))
+            println("User data requested for user: $userId")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to fetch user data", e)
+        }
+    }
+
+    /**
+     * Запрашивает данные о питании пользователя.
+     * @param userId Идентификатор пользователя.
+     */
+    internal fun fetchNutritionData(userId: String) {
+        try {
+            sendEvent("request_nutrition_data", Json.encodeToString(userId))
+            println("Nutrition data requested for user: $userId")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to fetch nutrition data", e)
+        }
+    }
+
+    /**
+     * Рассчитывает прогнозируемый вес пользователя.
+     * @return Прогнозируемый вес.
+     */
+    internal fun calculatePredictedWeight(): Double {
+        if (weightHistory.isEmpty()) return 0.0
+
+        val predictor =
+            WeightPredictor(
+                gender = gender,
+                age = age,
+                height = height,
+                goal = weightControlWish,
+            )
+
+        weightHistory.forEach { entry ->
+            val caloriesIntake =
+                nutritionData
+                    .firstOrNull { it.first == entry.dateTime.split(" ")[0] }
+                    ?.second?.get("calories") ?: 2000.0
+
+            val caloriesBurned = activityData[entry.dateTime.split(" ")[0]] ?: 0.0
+
+            predictor.addRecord(entry.weight, caloriesIntake, caloriesBurned)
+        }
+
+        return predictor.predictNextWeight()
+    }
+
+    /**
+     * Добавляет прогнозируемый вес в историю.
+     * @param weight Прогнозируемый вес.
+     */
+    internal fun addPredictedWeight(weight: Double) {
+        val nextDate =
+            LocalDateTime.now().plusDays(1)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        weightHistory += WeightHistoryEntry(nextDate, weight)
+    }
+
+    /**
+     * Проверяет корректность веса.
+     * @param weight Вес пользователя.
+     * @throws IllegalArgumentException Если вес некорректен.
+     */
+    internal fun validateWeight(weight: Double) {
+        if (weight <= 0) {
+            throw IllegalArgumentException("Weight must be positive")
+        }
+    }
+
+    /**
+     * Проверяет корректность даты и времени.
+     * @param dateTime Дата и время.
+     * @throws IllegalArgumentException Если формат даты некорректен.
+     */
+    internal fun validateDateTime(dateTime: String) {
+        try {
+            LocalDateTime.parse(dateTime, DateTimeFormatter.ISO_DATE_TIME)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Invalid date format", e)
+        }
+    }
+}
+
+fun main() {
+    WeightHistoryService().main()
+}

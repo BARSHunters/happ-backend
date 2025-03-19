@@ -3,7 +3,6 @@ package service
 import io.github.cdimascio.dotenv.dotenv
 import model.Token
 import model.TokenType
-import model.User
 import repository.TokenRepository
 import repository.UserRepository
 import utils.JwtTokenUtil
@@ -68,8 +67,10 @@ class UserService(private val userRepository: UserRepository, private val tokenR
         if (!JwtTokenUtil.verifyToken(token)) {
             return false
         }
+        println("1")
         val dbToken = tokenRepository.findByToken(token) ?: return false
         dbToken.revoked = true
+        println("2")
         return tokenRepository.revokeToken(dbToken)
     }
 }

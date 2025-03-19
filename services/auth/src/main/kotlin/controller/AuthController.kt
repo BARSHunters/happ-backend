@@ -1,16 +1,13 @@
 package controller
 
-import com.sun.net.httpserver.HttpExchange
 import keydb.sendEvent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import loginRequest
 import model.ErrorType
 import model.request.LoginDto
 import model.request.RegisterDto
 import model.request.RequestWrapper
 import model.response.*
-import registerRequest
 import service.UserService
 import validation.AuthValidator
 import validation.UserDataValidator
@@ -88,11 +85,11 @@ class AuthController(private val userService: UserService) {
         }
     }
 
-    private fun sendRequest(channel: String, dto: Any){
+    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: UserDataDto){
         val requestJson = Json.encodeToString(dto)
         sendEvent(channel, requestJson)
     }
-    private fun sendResponse(channel: String, id: Int, dto: Any){
+    private fun sendResponse(channel: String, id: Int, dto: LoginResponse){
         val response = ResponseWrapper(id, dto)
         val responseJson = Json.encodeToString(response)
         sendEvent(channel, responseJson)

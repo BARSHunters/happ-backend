@@ -10,6 +10,8 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":shared"))
+
     implementation("org.postgresql:postgresql:42.7.2")
     implementation("com.clickhouse:clickhouse-jdbc:0.8.2:shaded-all")
     implementation("com.zaxxer:HikariCP:6.2.1")

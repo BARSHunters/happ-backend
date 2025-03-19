@@ -1,15 +1,12 @@
 package org.example
 
-import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.util.*
-import kotlin.system.exitProcess
 import io.github.cdimascio.dotenv.dotenv
 
 
 object Config {
     private val env = dotenv {
-        directory = "./" // Указываем путь к .env файлу
+        directory = "./services/nutrition" // Указываем путь к .env файлу
         ignoreIfMissing = true // Игнорировать, если файл отсутствует
     }
 
@@ -33,7 +30,7 @@ object Config {
     }
 
     private fun replaceEnvVariables(value: String): String {
-        return value.replace(Regex("\\\$\\{(.*?)\\}")) { matchResult ->
+        return value.replace(Regex("\\$\\{(.*?)}")) { matchResult ->
             val envVarName = matchResult.groupValues[1]
             System.getenv(envVarName) ?: env[envVarName] ?: throw IllegalStateException("Environment variable $envVarName not found")
         }

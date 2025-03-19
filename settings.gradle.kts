@@ -15,7 +15,7 @@ rootProject.name = "happ-backend"
 include("shared")
 
 include(":activity")
-//include(":weightHistory")
+include(":weight_history")
 
 project(":activity").projectDir = File("./services/activity")
-//project(":weightHistory").projectDir = File("./services/weightHistory")
+project(":weight_history").projectDir = File("./services/weight_history")

@@ -10,6 +10,14 @@ repositories {
 }
 
 dependencies {
+    implementation("org.postgresql:postgresql:42.7.2")
+    implementation("com.clickhouse:clickhouse-jdbc:0.8.2:shaded-all")
+    implementation("com.zaxxer:HikariCP:6.2.1")
+
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
+    implementation("ch.qos.logback:logback-classic:1.4.14")
+
     testImplementation(kotlin("test"))
 }
 

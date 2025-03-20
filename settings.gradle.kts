@@ -14,8 +14,8 @@ rootProject.name = "happ-backend"
 
 include("shared")
 
-include(":service1")
-include(":service2")
+include(":auth")
+include(":userData")
 
-project(":service1").projectDir = File("./services/service1")
-project(":service2").projectDir = File("./services/service2")
+project(":auth").projectDir = File("./services/auth")
+project(":userData").projectDir = File("./services/userData")

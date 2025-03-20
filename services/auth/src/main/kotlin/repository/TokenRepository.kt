@@ -7,7 +7,7 @@ import java.sql.Timestamp
 import java.util.*
 
 class TokenRepository {
-    fun save(token: Token): Boolean{
+    fun save(token: Token): Boolean {
         return try {
             Database.getConnection().use { connection ->
                 val statement = connection.prepareStatement(
@@ -20,13 +20,13 @@ class TokenRepository {
                 statement.setString(5, token.userUsername)
                 statement.executeUpdate() > 0
             }
-        } catch (e: Exception){
+        } catch (e: Exception) {
             println("DB Error: ${e.message}")
             false
         }
     }
 
-    fun findByToken(token: String): Token?{
+    fun findByToken(token: String): Token? {
         return try {
             Database.getConnection().use { connection ->
                 val statement = connection.prepareStatement(
@@ -36,7 +36,7 @@ class TokenRepository {
                 )
                 statement.setString(1, token)
                 val rs = statement.executeQuery()
-                if (rs.next()){
+                if (rs.next()) {
                     Token(
                         id = UUID.fromString(rs.getString("id")),
                         token = rs.getString("token"),
@@ -47,12 +47,13 @@ class TokenRepository {
                     )
                 } else null
             }
-        } catch (e:Exception){
+        } catch (e: Exception) {
             println("DB Error: ${e.message}")
             null
         }
     }
-    fun revokeToken(token: Token): Boolean{
+
+    fun revokeToken(token: Token): Boolean {
         return try {
             Database.getConnection().use { connection ->
                 val statement = connection.prepareStatement(
@@ -65,7 +66,7 @@ class TokenRepository {
                 statement.setString(2, token.token)
                 statement.executeUpdate() > 0
             }
-    } catch (e: Exception){
+        } catch (e: Exception) {
             println("DB Error: ${e.message}")
             false
         }

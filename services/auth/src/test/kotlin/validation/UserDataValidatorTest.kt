@@ -9,6 +9,7 @@ class UserDataValidatorTest {
     fun `valid name passes validation`() {
         assertTrue(UserDataValidator.userDataValidation("Иван Иванов", 180, 75f))
     }
+
     @Test
     fun `valid short name passes validation`() {
         assertTrue(UserDataValidator.userDataValidation("J. Doe", 180, 75f))

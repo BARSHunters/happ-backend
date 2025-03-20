@@ -1,8 +1,6 @@
 package controller
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.Gender
@@ -14,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import service.UserService
 import java.time.LocalDate
+import keydb.sendEvent
 
 class AuthControllerTest {
 
@@ -23,19 +22,29 @@ class AuthControllerTest {
     @BeforeEach
     fun setUp() {
         authController = AuthController(userService)
+        mockkStatic(::sendEvent)
     }
 
     @Test
-    fun `handleRegister should return token when registration is successful`() {
-        val request = RegisterDto("newUser", "StrongPass123", "John Doe", LocalDate.of(1990, 1,10), Gender.MALE, 180, 75.0f, WeightDesire.LOSS)
+    fun `handleRegister should return token and send event when registration is successful`() {
+        val request = RegisterDto(
+            "newUser",
+            "StrongPass123",
+            "John Doe",
+            LocalDate.of(1990, 1, 10),
+            Gender.MALE,
+            180,
+            75.0f,
+            WeightDesire.LOSS
+        )
         val requestWrapper = RequestWrapper(1, request)
         val requestJson = Json.encodeToString(requestWrapper)
-
         every { userService.register("newUser", "StrongPass123") } returns "mocked-token"
-
         authController.handleRegister(requestJson)
-
         verify { userService.register("newUser", "StrongPass123") }
+        verify { sendEvent("registerResponse", any()) }
+        verify { sendEvent("createUserDataRequest", any()) }
+        unmockkStatic(::sendEvent)
     }
 
     @Test
@@ -43,12 +52,10 @@ class AuthControllerTest {
         val request = LoginDto("newUser", "StrongPass123")
         val requestWrapper = RequestWrapper(2, request)
         val requestJson = Json.encodeToString(requestWrapper)
-
         every { userService.login("newUser", "StrongPass123") } returns "mocked-token"
-
         authController.handleLogin(requestJson)
-
         verify { userService.login("newUser", "StrongPass123") }
+        verify { sendEvent("loginResponse", any()) }
     }
 
     @Test
@@ -56,11 +63,8 @@ class AuthControllerTest {
         val request = LoginDto("newUser", "WrongPassword")
         val requestWrapper = RequestWrapper(3, request)
         val requestJson = Json.encodeToString(requestWrapper)
-
         every { userService.login("newUser", "WrongPassword") } returns null
-
         authController.handleLogin(requestJson)
-
         verify { userService.login("newUser", "WrongPassword") }
     }
 }

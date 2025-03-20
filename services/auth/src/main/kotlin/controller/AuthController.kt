@@ -14,7 +14,7 @@ import validation.AuthValidator
 import validation.UserDataValidator
 
 class AuthController(private val userService: UserService) {
-    fun handleRegister(requestBody: String){
+    fun handleRegister(requestBody: String) {
         println("Register request: $requestBody")
         val registerRequest: RequestWrapper<RegisterDto> = try {
             Json.decodeFromString(requestBody)
@@ -29,7 +29,9 @@ class AuthController(private val userService: UserService) {
         try {
             if (AuthValidator.authValidation(registerDto.username, registerDto.password) &&
                 UserDataValidator.userDataValidation(
-                    registerDto.name, registerDto.heightCm, registerDto.weightKg)) {
+                    registerDto.name, registerDto.heightCm, registerDto.weightKg
+                )
+            ) {
 
                 val token = userService.register(registerDto.username, registerDto.password)
                 if (token != null) {
@@ -63,7 +65,7 @@ class AuthController(private val userService: UserService) {
         }
     }
 
-    fun handleLogin(requestBody: String){
+    fun handleLogin(requestBody: String) {
         println("Login request: $requestBody")
         val loginRequest: RequestWrapper<LoginDto> = try {
             Json.decodeFromString(requestBody)
@@ -94,7 +96,7 @@ class AuthController(private val userService: UserService) {
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
                 sendError(loginRequest.id, error)
             }
-        }catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
@@ -102,16 +104,18 @@ class AuthController(private val userService: UserService) {
         }
     }
 
-    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: UserDataDto){
+    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: UserDataDto) {
         val requestJson = Json.encodeToString(dto)
         sendEvent(channel, requestJson)
     }
-    private fun sendResponse(channel: String, id: Int, dto: LoginResponse){
+
+    private fun sendResponse(channel: String, id: Int, dto: LoginResponse) {
         val response = ResponseWrapper(id, dto)
         val responseJson = Json.encodeToString(response)
         sendEvent(channel, responseJson)
     }
-    private fun sendError(id: Int, dto: ErrorDto){
+
+    private fun sendError(id: Int, dto: ErrorDto) {
         val response = ErrorWrapper(id, dto)
         val responseJson = Json.encodeToString(response)
         sendEvent("error", responseJson)

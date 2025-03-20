@@ -13,13 +13,11 @@ import java.util.*
 class UserService(private val userRepository: UserRepository, private val tokenRepository: TokenRepository) {
 
     private val dotenv = dotenv()
-    private val jwtExpirationSeconds = dotenv["JWT_EXPIRATION"].toLong()/100
-
-    // TODO добавить хэширование пароля
+    private val jwtExpirationSeconds = dotenv["JWT_EXPIRATION"].toLong() / 100
     fun register(username: String, password: String): String? {
-         if (userRepository.findUserByUsername(username) != null){
-             return null
-         }
+        if (userRepository.findUserByUsername(username) != null) {
+            return null
+        }
         val hashedPassword = PasswordHasher.hash(password)
         if (userRepository.createUser(username, hashedPassword)) {
             val newToken = Token(
@@ -36,8 +34,6 @@ class UserService(private val userRepository: UserRepository, private val tokenR
         return null
     }
 
-
-    // TODO добавить аутентификацию пользователя
     fun login(username: String, password: String): String? {
         val existingUser = userRepository.findUserByUsername(username)
         if (existingUser != null && PasswordHasher.verify(password, existingUser.password)) {
@@ -63,14 +59,12 @@ class UserService(private val userRepository: UserRepository, private val tokenR
         return !(dbToken.revoked || dbToken.expiredAt.isBefore(LocalDateTime.now()))
     }
 
-    fun  revokeJwtToken(token: String): Boolean {
+    fun revokeJwtToken(token: String): Boolean {
         if (!JwtTokenUtil.verifyToken(token)) {
             return false
         }
-        println("1")
         val dbToken = tokenRepository.findByToken(token) ?: return false
         dbToken.revoked = true
-        println("2")
         return tokenRepository.revokeToken(dbToken)
     }
 }

@@ -16,4 +16,4 @@ data class UserDataDto(
     val heightCm: Int,
     val weightKg: Float,
     val weightDesire: WeightDesire
-    )
+)

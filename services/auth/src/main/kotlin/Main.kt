@@ -8,7 +8,7 @@ import service.UserService
 
 lateinit var userService: UserService
 lateinit var authController: AuthController
-fun afterStartup(){
+fun afterStartup() {
     Database
     val userRepository = UserRepository()
     val tokenRepository = TokenRepository()
@@ -17,26 +17,31 @@ fun afterStartup(){
     println("Service auth is running")
 
 }
-fun receiveJwtToken(token: String){
-    if(userService.validateJwtToken(token)){
+
+fun receiveJwtToken(token: String) {
+    if (userService.validateJwtToken(token)) {
         sendEvent("jwtValidationResponse", "valid")
     } else {
         sendEvent("jwtValidationResponse", "invalid")
     }
 }
-fun revokeJwtToken(token: String){
-    if (userService.revokeJwtToken(token)){
+
+fun revokeJwtToken(token: String) {
+    if (userService.revokeJwtToken(token)) {
         sendEvent("jwtRevokeResponse", "success")
-    } else{
+    } else {
         sendEvent("jwtRevokeResponse", "error")
     }
 }
-fun loginRequest(loginRequest: String){
+
+fun loginRequest(loginRequest: String) {
     authController.handleLogin(loginRequest)
 }
-fun registerRequest(registerRequest: String){
+
+fun registerRequest(registerRequest: String) {
     authController.handleRegister(registerRequest)
 }
+
 fun main(): Unit = runServiceListener(
     mapOf(
         "registerRequest" to ::registerRequest,

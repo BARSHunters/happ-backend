@@ -5,6 +5,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.Statement
+import kotlin.system.exitProcess
 
 object Database {
 
@@ -19,6 +20,7 @@ object Database {
         } catch (e: SQLException) {
             println("Error initializing database: ${e.message}")
             e.printStackTrace()
+            exitProcess(1)
         }
     }
 
@@ -47,7 +49,8 @@ object Database {
         """.trimIndent()
         statement.execute(sql)
     }
-    private fun createTokenTable(statement: Statement){
+
+    private fun createTokenTable(statement: Statement) {
         val sql = """
             CREATE TABLE IF NOT EXISTS tokens (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

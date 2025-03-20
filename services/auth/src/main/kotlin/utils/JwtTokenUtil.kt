@@ -21,13 +21,8 @@ object JwtTokenUtil {
             .sign(algorithm)
     }
 
-    fun verifyToken(token: String): Boolean {
-        return try {
-            JWT.require(algorithm).build().verify(token)
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
+    fun verifyToken(token: String): Boolean = runCatching {
+        JWT.require(algorithm).build().verify(token)
+    }.isSuccess
 
 }

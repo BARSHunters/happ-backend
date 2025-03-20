@@ -85,8 +85,11 @@ class WeightHistoryService(
     internal var height: Int = 176
 
     /**
-     * Обработчик запроса от NutritionService.
-     * @param message Сообщение с идентификатором пользователя.
+     * Обработчик запроса от NutritionService. Затем отправляет ответ.
+     * Слушает по каналу "request_nutrition_wish"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
+     * Отправляет по каналу "response_nutrition_wish"
+     * Отправляемые данные: закодированное Json.encodeToString - weightControlWish:String (текущее пожелание пользователя по контролю веса)
      */
     internal fun handleNutritionWishRequest(message: String) {
         try {
@@ -100,7 +103,8 @@ class WeightHistoryService(
 
     /**
      * Обработчик запроса от UserDataService.
-     * @param message Сообщение с данными о весе пользователя.
+     * Слушает по каналу "request_new_weight"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - Pair(userId:String, weight:Double) (пара id и нового веса пользователя)
      */
     internal fun handleNewWeightRequest(message: String) {
         try {
@@ -115,7 +119,9 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от ActivityService.
-     * @param message Сообщение с данными о активности.
+     * Слушает по каналу "response_activity_data"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида ActivityResponse(userId:String, activities:List<ActivityRecord>),
+     * где: ActivityRecord - это DTO вида ActivityRecord(date:String, calories:Double) (т.е. в сумме это id и список пар дата-сожжённые калории)
      */
     internal fun handleActivityResponse(message: String) {
         try {
@@ -129,7 +135,9 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от UserDataService.
-     * @param message Сообщение с данными о пользователе.
+     * Слушает по каналу "response_user_data"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида UserDataResponse(userId:String, weight:Double, age:Int, gender:String),
+     * где: gender = {"male","female"} (т.е. в сумме - id, вес, возраст и пол пользователя)
      */
     internal fun handleUserDataResponse(message: String) {
         try {
@@ -147,7 +155,12 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от NutritionService.
-     * @param message Сообщение с данными о питании.
+     * Слушает по каналу "response_nutrition_data"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:List<Pair<String, Map<String, Double>>>,
+     * где nutritionData = список(List) из пар(Pair): дата формата yyyy-mm-dd (String) и словаря(Map) c ключом(String) и значением(Double). Вот пример такого списка:
+     * listOf("2024-03-01" to mapOf("calories" to 2500.0, "protein" to 120.0, "fat" to 80.0, "carbs" to 300.0),
+     *        "2024-03-02" to mapOf("calories" to 2300.0, "protein" to 110.0, "fat" to 70.0, "carbs" to 280.0))
+     * Это то как я себе представил КБЖУ из NutritionService, можно и по другому реализовать, готов к предложениям
      */
     internal fun handleNutritionResponse(message: String) {
         try {
@@ -337,7 +350,10 @@ class WeightHistoryService(
 
     /**
      * Запрашивает данные о активности пользователя.
+     * Отправляет запрос сервису ActivityService
+     * Отправляет по каналу "request_activity_data"
      * @param userId Идентификатор пользователя.
+     * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal fun fetchActivityData(userId: String) {
         try {
@@ -350,7 +366,10 @@ class WeightHistoryService(
 
     /**
      * Запрашивает данные о пользователе.
+     * Отправляет запрос сервису UserDataService
+     * Отправляет по каналу "request_user_data"
      * @param userId Идентификатор пользователя.
+     * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal fun fetchUserData(userId: String) {
         try {
@@ -363,7 +382,10 @@ class WeightHistoryService(
 
     /**
      * Запрашивает данные о питании пользователя.
+     * Отправляет запрос сервису NutritionService
+     * Отправляет по каналу "request_nutrition_data"
      * @param userId Идентификатор пользователя.
+     * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal fun fetchNutritionData(userId: String) {
         try {

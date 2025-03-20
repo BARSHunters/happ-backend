@@ -52,7 +52,7 @@ class ActivityServiceTest {
         activityService.calculateHeartRateMetrics()
 
         assertEquals(140, activityService.maxHeartRate)
-        assertTrue(activityService.avgHeartRate > 0)
+        assertEquals(130.0, activityService.avgHeartRate)
     }
 
     @Test

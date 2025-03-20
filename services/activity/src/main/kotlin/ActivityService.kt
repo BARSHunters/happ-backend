@@ -67,8 +67,12 @@ class ActivityService(
     internal var recoveryTime: Int = 0
 
     /**
-     * Обрабатывает запрос на получение данных о тренировках пользователя.
-     * @param message Строка, содержащая идентификатор пользователя.
+     * Обработчик запроса от WeightHistoryService. Затем отправляет ответ
+     * Слушает по каналу "request_activity_data"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
+     * Отправляет по каналу "response_activity_data"
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида ActivityResponse(userId:String, activities:List<ActivityRecord>),
+     * где: ActivityRecord - это DTO вида ActivityRecord(date:String, calories:Double) (т.е. в сумме это id и список пар дата-сожжённые калории)
      */
     private fun handleActivityRequest(message: String) {
         val userId = Json.decodeFromString<String>(message)
@@ -83,8 +87,10 @@ class ActivityService(
     }
 
     /**
-     * Обрабатывает ответ от сервиса UserData с данными пользователя.
-     * @param message Строка, содержащая данные пользователя в формате JSON.
+     * Обработчик ответа от UserDataService.
+     * Слушает по каналу "response_user_data"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида UserDataResponse(userId:String, weight:Double, age:Int, gender:String),
+     * где: gender = {"male","female"} (т.е. в сумме - id, вес, возраст и пол пользователя)
      */
     private fun handleUserDataResponse(message: String) {
         val response = Json.decodeFromString<UserDataResponse>(message)
@@ -202,7 +208,10 @@ class ActivityService(
     }
 
     /**
-     * Запрашивает данные пользователя из сервиса UserData.
+     * Запрашивает данные о пользователе.
+     * Отправляет запрос сервису UserDataService
+     * Отправляет по каналу "request_user_data"
+     * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal fun fetchUserData() {
         try {
@@ -263,7 +272,11 @@ class ActivityService(
     }
 
     /**
-     * Отправляет данные о тренировке в сервисы Achievement и Notify.
+     * Отправляет данные о тренировке.
+     * Отправляет запрос в сервисы ActivityService и NotifyService
+     * Отправляет по каналу "request_training_data"
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида TrainingData(userId: String, trainingDate: String, trainingDuration: Int, avgHeartRate: Double,
+     * maxHeartRate: Int, caloriesBurned: Double, met: Double, recoveryTime: Int) (т.е суммарно все сохраняемые в БД данные о тренировке)
      */
     internal fun sendTrainingDataToAchievementAndNotifyService() {
         try {

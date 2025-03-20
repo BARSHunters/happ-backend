@@ -231,18 +231,13 @@ class ActivityService(
      * @throws RuntimeException Если данные от пользователя некорректны.
      */
     internal fun calculateCalories() {
-        try {
-            validateUserData()
-            this.caloriesBurned =
-                if (gender == "male") {
-                    ((-55.0969 + (0.6309 * avgHeartRate) + (0.1988 * weight) + (0.2017 * age)) / 4.184) * trainingDuration
-                } else {
-                    ((-20.4022 + (0.4472 * avgHeartRate) - (0.1263 * weight) + (0.074 * age)) / 4.184) * trainingDuration
-                }
-        } catch (e: IllegalArgumentException) {
-            println("Invalid user data: ${e.message}")
-            throw RuntimeException("Failed to calculate calories", e)
-        }
+        validateUserData()
+        this.caloriesBurned =
+            if (gender == "male") {
+                ((-55.0969 + (0.6309 * avgHeartRate) + (0.1988 * weight) + (0.2017 * age)) / 4.184) * trainingDuration
+            } else {
+                ((-20.4022 + (0.4472 * avgHeartRate) - (0.1263 * weight) + (0.074 * age)) / 4.184) * trainingDuration
+            }
     }
 
     /**

@@ -132,7 +132,7 @@ class ActivityServiceTest {
         activityService.age = 0
         activityService.gender = "unknown"
 
-        assertThrows(RuntimeException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             activityService.calculateCalories()
         }
     }

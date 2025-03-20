@@ -69,7 +69,7 @@ class WeightPredictor(
                 (lastCaloriesIntake - tef - bmr - lastCaloriesBurned + goalAdjustment) / 7700
 
         val regression =
-            if (weightHistory.size >= 4) {
+            if (weightHistory.size >= 2) { // логичнее чем >= 4, ведь берём только last()
                 linearRegressionPrediction()
             } else {
                 empirical

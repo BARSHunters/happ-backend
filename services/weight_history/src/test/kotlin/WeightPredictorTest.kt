@@ -1,5 +1,4 @@
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -20,16 +19,15 @@ class WeightPredictorTest {
 
     @Test
     fun testPredictNextWeight() {
-        // Добавляем записи для прогнозирования
-        weightPredictor.addRecord(70.0, 2000.0, 500.0)
-        weightPredictor.addRecord(69.5, 2200.0, 600.0)
+        // Добавляем 1 запись для только эмпирического прогнозирования
         weightPredictor.addRecord(69.0, 2100.0, 550.0)
 
         // Прогнозируем следующий вес
         val predictedWeight = weightPredictor.predictNextWeight()
 
         // Проверяем, что прогнозируемый вес находится в разумных пределах
-        assertTrue(predictedWeight > 0)
+        // Реальный ответ: 68.96038...
+        assertEquals(predictedWeight, 68.960,0.001)
     }
 
     @Test
@@ -52,7 +50,7 @@ class WeightPredictorTest {
 
     @Test
     fun testLinearRegressionPrediction() {
-        // Добавляем записи для линейной регрессии
+        // Добавляем 3 записи для проверки линейной регрессии
         weightPredictor.addRecord(70.0, 2000.0, 500.0)
         weightPredictor.addRecord(69.5, 2200.0, 600.0)
         weightPredictor.addRecord(69.0, 2100.0, 550.0)
@@ -61,6 +59,7 @@ class WeightPredictorTest {
         val predictedWeight = weightPredictor.linearRegressionPrediction()
 
         // Проверяем, что прогнозируемый вес находится в разумных пределах
-        assertTrue(predictedWeight > 0)
+        // Реальный ответ: 69.4658...
+        assertEquals(predictedWeight,69.465,0.001)
     }
 }

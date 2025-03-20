@@ -27,7 +27,7 @@ class WeightPredictorTest {
 
         // Проверяем, что прогнозируемый вес находится в разумных пределах
         // Реальный ответ: 68.96038...
-        assertEquals(predictedWeight, 68.960, 0.001)
+        assertEquals(68.960, predictedWeight, 0.001)
     }
 
     @Test
@@ -60,6 +60,6 @@ class WeightPredictorTest {
 
         // Проверяем, что прогнозируемый вес находится в разумных пределах
         // Реальный ответ: 69.4658...
-        assertEquals(predictedWeight, 69.465, 0.001)
+        assertEquals(69.465, predictedWeight, 0.001)
     }
 }

@@ -6,7 +6,7 @@ object UserDataValidator {
     }
 
     private fun nameValidation(name: String): Boolean {
-        return name.length >= 5 &&
+        return name.isNotEmpty() &&
                 name.matches(Regex("^[a-zA-Zа-яА-ЯёЁ]+\\.?(?: +[a-zA-Zа-яА-ЯёЁ]+\\.?)*$"))
     }
 

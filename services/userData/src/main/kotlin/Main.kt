@@ -1,9 +1,9 @@
 import database.Database
 import keydb.runServiceListener
-import keydb.sendEvent
 
 fun afterStartup(){
     Database
+    println("Service userData is running")
 }
 fun receiveMessage(msg: String){
     println(msg)

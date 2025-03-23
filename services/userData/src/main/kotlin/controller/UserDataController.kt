@@ -1,0 +1,166 @@
+package controller
+
+import keydb.sendEvent
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import model.ErrorType
+import model.UserData
+import model.response.ErrorDto
+import model.response.WeightHistoryResponse
+import service.UserDataService
+
+class UserDataController(private val userDataService: UserDataService) {
+    fun handleCreateUserData(requestBody: String) {
+        println(requestBody)
+        val userData: UserData = try {
+            Json.decodeFromString<UserData>(requestBody)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+            return
+        }
+        try {
+            val result = userDataService.createUserData(userData)
+            if (result) {
+                val weightHistoryResponse = WeightHistoryResponse(
+                    username = userData.username,
+                    weightKg = userData.weightKg,
+                )
+                sendResponse("createWeightHistory", weightHistoryResponse)
+            } else {
+                val errorMessage = "Can't create user data"
+                val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+                sendResponse("error", error)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Internal server error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun handleUpdateUserData(requestBody: String) {
+        println(requestBody)
+        val userData: UserData = try {
+            Json.decodeFromString<UserData>(requestBody)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+            return
+        }
+        try {
+            val result = userDataService.updateUserData(userData)
+            if (result) {
+                val weightHistoryResponse = WeightHistoryResponse(
+                    username = userData.username,
+                    weightKg = userData.weightKg,
+                )
+                sendResponse("createWeightHistory", weightHistoryResponse)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Internal server error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveUserData(username: String) {
+        val userData = userDataService.getUserData(username)
+        if (userData != null) {
+            sendResponse("sendUserData", userData)
+        } else {
+            val errorMessage = "Can't get user data"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveName(username: String) {
+        val userName = userDataService.getName(username)
+        if (userName != null) {
+            sendResponse("sendName", userName)
+        } else {
+            val errorMessage = "Can't get name"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveGender(username: String) {
+        val userGender = userDataService.getGender(username)
+        if (userGender != null) {
+            sendResponse("sendGender", userGender)
+        } else {
+            val errorMessage = "Can't get gender"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveBirthDate(username: String) {
+        val userBirthDate = userDataService.getBirthDate(username)
+        if (userBirthDate != null) {
+            sendResponse("sendBirthDate", userBirthDate)
+        } else {
+            val errorMessage = "Can't get date"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveAge(username: String) {
+        val userAge = userDataService.getAge(username)
+        if (userAge != null) {
+            sendResponse("sendAge", userAge)
+        } else {
+            val errorMessage = "Can't get age"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveHeight(username: String) {
+        val userHeight = userDataService.getHeightCm(username)
+        if (userHeight != null) {
+            sendResponse("sendHeight", userHeight)
+        } else {
+            val errorMessage = "Can't get height"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveWeight(username: String) {
+        val userWeight = userDataService.getWeightKg(username)
+        if (userWeight != null) {
+            sendResponse("sendWeight", userWeight)
+        } else {
+            val errorMessage = "Can't get weight"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    fun receiveWeightDesire(username: String) {
+        val userWeightDesire = userDataService.getWeightDesire(username)
+        if (userWeightDesire != null) {
+            sendResponse("sendWeightDesire", userWeightDesire)
+        } else {
+            val errorMessage = "Can't get weight-desire"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", error)
+        }
+    }
+
+    private fun sendResponse(channel: String, response: Any) {
+        val responseJson = Json.encodeToString(response)
+        sendEvent(channel, responseJson)
+    }
+}

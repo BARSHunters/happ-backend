@@ -9,7 +9,7 @@ data class UserData(
     val username: String,
     val name: String,
     @Serializable(with = LocalDateSerializer::class)
-    val birthDay: LocalDate,
+    val birthDate: LocalDate,
     val gender: Gender,
     val heightCm: Int,
     val weightKg: Float,

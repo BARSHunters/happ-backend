@@ -22,14 +22,15 @@ class AuthController(private val userService: UserService) {
             e.printStackTrace()
             val errorMessage = "Invalid JSON format"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendError(-1, error)  // ID -1, если его не удалось извлечь
+            sendError(-1, error)
             return
         }
         val registerDto = registerRequest.dto
         try {
             if (AuthValidator.authValidation(registerDto.username, registerDto.password) &&
                 UserDataValidator.userDataValidation(
-                    registerDto.name, registerDto.heightCm, registerDto.weightKg
+                    registerDto.name, registerDto.heightCm,
+                    registerDto.weightKg, registerDto.birthDate
                 )
             ) {
 

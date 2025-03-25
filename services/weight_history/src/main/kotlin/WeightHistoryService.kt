@@ -1,5 +1,6 @@
 import keydb.runServiceListener
 import keydb.sendEvent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -83,6 +84,9 @@ class WeightHistoryService(
     internal var age: Int = 30
     internal var gender: String = "male"
     internal var height: Int = 176
+    internal var userDataReceived = CompletableDeferred<Unit>()
+    internal var activityDataReceived = CompletableDeferred<Unit>()
+    internal var nutritionDataReceived = CompletableDeferred<Unit>()
 
     /**
      * Обработчик запроса от NutritionService. Затем отправляет ответ.
@@ -130,6 +134,8 @@ class WeightHistoryService(
             println("Activity data received for user: ${response.userId}")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle activity response", e)
+        } finally {
+            activityDataReceived.complete(Unit)
         }
     }
 
@@ -144,12 +150,15 @@ class WeightHistoryService(
             val response = Json.decodeFromString<UserDataResponse>(message)
             this.age = response.age
             validateWeight(response.weight)
-            saveWeightToDB(userId, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
+//            saveWeightToDB(userId, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
+//            закомментировал, так как вызывает проблемы при одинаковых каналах взаимодействия с UserData
             this.gender = response.gender
             this.height = if (response.gender == "male") 176 else 164
             println("User data received: $response")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle user data response", e)
+        } finally {
+            userDataReceived.complete(Unit)
         }
     }
 
@@ -169,6 +178,8 @@ class WeightHistoryService(
             println("Nutrition data received for user: ${response.userId}")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition response", e)
+        } finally {
+            nutritionDataReceived.complete(Unit)
         }
     }
 
@@ -192,7 +203,7 @@ class WeightHistoryService(
      * @param weightControlWish Пожелание по контролю веса (по умолчанию "keep").
      * @return Результат обработки запроса.
      */
-    fun processRequest(
+    suspend fun processRequest(
         userId: String,
         weightControlWish: String = "keep",
     ): Map<String, Any> {
@@ -355,10 +366,12 @@ class WeightHistoryService(
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchActivityData(userId: String) {
+    internal suspend fun fetchActivityData(userId: String) {
         try {
+            activityDataReceived = CompletableDeferred()
             sendEvent("request_activity_data", Json.encodeToString(userId))
             println("Activity data requested for user: $userId")
+            activityDataReceived.await()
         } catch (e: Exception) {
             throw RuntimeException("Failed to fetch activity data", e)
         }
@@ -371,10 +384,12 @@ class WeightHistoryService(
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchUserData(userId: String) {
+    internal suspend fun fetchUserData(userId: String) {
         try {
+            userDataReceived = CompletableDeferred()
             sendEvent("request_user_data", Json.encodeToString(userId))
             println("User data requested for user: $userId")
+            userDataReceived.await()
         } catch (e: Exception) {
             throw RuntimeException("Failed to fetch user data", e)
         }
@@ -387,10 +402,12 @@ class WeightHistoryService(
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchNutritionData(userId: String) {
+    internal suspend fun fetchNutritionData(userId: String) {
         try {
+            nutritionDataReceived = CompletableDeferred()
             sendEvent("request_nutrition_data", Json.encodeToString(userId))
             println("Nutrition data requested for user: $userId")
+            nutritionDataReceived.await()
         } catch (e: Exception) {
             throw RuntimeException("Failed to fetch nutrition data", e)
         }

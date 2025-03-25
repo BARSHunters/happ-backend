@@ -16,6 +16,10 @@ include("shared")
 
 include(":auth")
 include(":userData")
+include(":test-service")
+include(":weight_history")
 
 project(":auth").projectDir = File("./services/auth")
 project(":userData").projectDir = File("./services/userData")
+project(":test-service").projectDir = File("./services/test-service")
+project(":weight_history").projectDir = File("./services/weight_history")

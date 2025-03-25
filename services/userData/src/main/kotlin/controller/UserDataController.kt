@@ -31,7 +31,7 @@ class UserDataController(private val userDataService: UserDataService) {
                         username = userData.username,
                         weightKg = userData.weightKg,
                     )
-                    sendResponse("createWeightHistory", weightHistoryResponse)
+                    sendResponse("request_new_weight", weightHistoryResponse)
                 } else {
                     val errorMessage = "Can't create user data"
                     val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
@@ -69,7 +69,7 @@ class UserDataController(private val userDataService: UserDataService) {
                         username = userData.username,
                         weightKg = userData.weightKg,
                     )
-                    sendResponse("createWeightHistory", weightHistoryResponse)
+                    sendResponse("create_new_weight", weightHistoryResponse)
                 } else {
                     val errorMessage = "Can't update user data"
                     val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)

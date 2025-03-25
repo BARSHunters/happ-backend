@@ -5,6 +5,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.Statement
+import kotlin.system.exitProcess
 
 object Database {
     private val dotenv = dotenv()
@@ -18,6 +19,7 @@ object Database {
         } catch (e: SQLException) {
             println("Error initializing database: ${e.message}")
             e.printStackTrace()
+            exitProcess(1)
         }
     }
 

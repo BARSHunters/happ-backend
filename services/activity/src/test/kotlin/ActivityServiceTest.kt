@@ -2,7 +2,6 @@ import io.mockk.every
 import io.mockk.spyk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
@@ -64,7 +63,18 @@ class ActivityServiceTest {
         activityService.trainingDuration = 3600
 
         activityService.calculateCalories()
-        assertTrue(activityService.caloriesBurned > 0)
+        // Реальный ответ: 34914,23518...
+        assertEquals(34914.235, activityService.caloriesBurned, 0.001)
+
+        activityService.weight = 58.5
+        activityService.age = 25
+        activityService.gender = "female"
+        activityService.avgHeartRate = 124.0
+        activityService.trainingDuration = 2000
+
+        activityService.calculateCalories()
+        // Реальный ответ: 14107,09847...
+        assertEquals(14107.098, activityService.caloriesBurned, 0.001)
     }
 
     @Test
@@ -72,8 +82,8 @@ class ActivityServiceTest {
         activityService.avgHeartRate = 120.0
         activityService.age = 30
         activityService.calculateMET()
-
-        assertTrue(activityService.met > 0)
+        // Реальный ответ: 4.61538...
+        assertEquals(4.615, activityService.met, 0.001)
     }
 
     @Test
@@ -83,7 +93,8 @@ class ActivityServiceTest {
         activityService.maxHeartRate = 140
         activityService.calculateRecoveryTime()
 
-        assertTrue(activityService.recoveryTime > 0)
+        // Реальный ответ: 141942
+        assertEquals(141942, activityService.recoveryTime)
     }
 
     @Test

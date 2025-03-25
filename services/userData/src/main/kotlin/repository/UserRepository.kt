@@ -4,7 +4,7 @@ import database.Database
 import model.Gender
 import model.UserData
 import model.WeightDesire
-import java.sql.Timestamp
+import java.sql.Date
 
 class UserRepository {
     fun createUser(userData: UserData): Boolean {
@@ -19,7 +19,7 @@ class UserRepository {
                 )
                 statement.setString(1, userData.username)
                 statement.setString(2, userData.name)
-                statement.setTimestamp(3, Timestamp.valueOf(userData.birthDate.toString()))
+                statement.setDate(3, Date.valueOf(userData.birthDate.toString()))
                 statement.setString(4, userData.gender.toString())
                 statement.setInt(5, userData.heightCm)
                 statement.setFloat(6, userData.weightKg)
@@ -47,7 +47,7 @@ class UserRepository {
                     UserData(
                         username = rs.getString("username"),
                         name = rs.getString("name"),
-                        birthDate = rs.getTimestamp("birth_date").toLocalDateTime().toLocalDate(),
+                        birthDate = rs.getDate("birth_date").toLocalDate(),
                         gender = Gender.valueOf(rs.getString("gender")),
                         heightCm = rs.getInt("height_cm"),
                         weightKg = rs.getFloat("weight_kg"),

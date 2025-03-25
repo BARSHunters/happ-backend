@@ -29,7 +29,7 @@ class UserDataService(private val userRepository: UserRepository) {
             updatedFields["birth_date"] = userData.birthDate
         }
         if (existingUserData.gender != userData.gender) {
-            updatedFields["gender"] = userData.gender
+            updatedFields["gender"] = userData.gender.name
         }
         if (existingUserData.heightCm != userData.heightCm) {
             updatedFields["height_cm"] = userData.heightCm
@@ -38,7 +38,7 @@ class UserDataService(private val userRepository: UserRepository) {
             updatedFields["weight_kg"] = userData.weightKg
         }
         if (existingUserData.weightDesire != userData.weightDesire) {
-            updatedFields["weight_desire"] = userData.weightDesire
+            updatedFields["weight_desire"] = userData.weightDesire.name
         }
 
         if (updatedFields.isNotEmpty()) {
@@ -67,8 +67,8 @@ class UserDataService(private val userRepository: UserRepository) {
     fun getAge(username: String): Int? {
         val birthDate = userRepository.findByUsername(username)?.birthDate ?: return null
         var age = LocalDate.now().minusYears(birthDate.year.toLong()).year
-        if (LocalDate.now().dayOfYear > birthDate.dayOfYear) {
-            age += 1
+        if (LocalDate.now().dayOfYear < birthDate.dayOfYear) {
+            age--
         }
         return age
     }

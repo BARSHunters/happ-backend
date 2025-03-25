@@ -1,5 +1,6 @@
 import keydb.runServiceListener
 import keydb.sendEvent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
@@ -65,6 +66,7 @@ class ActivityService(
     internal var caloriesBurned: Double = 0.0
     internal var met: Double = 0.0
     internal var recoveryTime: Int = 0
+    private var userDataReceived = CompletableDeferred<Unit>()
 
     /**
      * Обработчик запроса от WeightHistoryService. Затем отправляет ответ
@@ -98,6 +100,7 @@ class ActivityService(
         this.age = response.age
         this.gender = response.gender
         println("Received user data: $response")
+        userDataReceived.complete(Unit)
     }
 
     fun main(): Unit =
@@ -115,7 +118,7 @@ class ActivityService(
      * @param trainingDate Дата тренировки (опционально).
      * @return Результат обработки запроса.
      */
-    fun processRequest(
+    suspend fun processRequest(
         userId: String,
         jsonWorkout: String? = null,
         trainingDate: String? = null,
@@ -213,9 +216,11 @@ class ActivityService(
      * Отправляет по каналу "request_user_data"
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchUserData() {
+    internal suspend fun fetchUserData() {
         try {
+            userDataReceived = CompletableDeferred()
             sendEvent("request_user_data", Json.encodeToString(userId))
+            userDataReceived.await()
         } catch (e: Exception) {
             println("Failed to send event: ${e.message}")
             throw RuntimeException("Failed to fetch user data", e)

@@ -1,0 +1,84 @@
+package org.example.calculators
+
+import org.example.dto.UserDTO
+import org.example.model.Gender
+import kotlin.math.ln
+
+enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) {
+    YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.height.toDouble()) }),
+    USNavy({ user ->
+        USNavy(
+            user.gender,
+            user.waist?.toDouble() ?: throw NullPointerException(),
+            user.neck?.toDouble() ?: throw NullPointerException(),
+            user.height.toDouble(),
+            user.hips?.toDouble() ?: throw NullPointerException()
+        )
+    }),
+    JacksonPollock({ user ->
+        JacksonPollock(
+            user.gender,
+            user.sumOfSkinfolds?.toDouble() ?: throw NullPointerException(),
+            user.age.toDouble()
+        )
+    }),
+    BMI({ user -> BMI(user.weight.toDouble(), user.height.toDouble(), user.age.toDouble(), user.gender) })
+}
+
+// YMCA (по талии)
+class YMCA(
+    private val waist: Double,
+    private val height: Double
+) : Calculator {
+    override fun calculate(): Double {
+        return (86.010 * ln(waist.toDouble()) - 70.041 * ln(height.toDouble()) + 36.76)
+    }
+}
+
+// US Navy (по талии, шее и бедрам)
+class USNavy(
+    private val gender: Gender,
+    private val waist: Double,
+    private val neck: Double,
+    private val height: Double,
+    private val hips: Double? = null
+) : Calculator {
+    override fun calculate(): Double {
+        return if (gender == Gender.MALE) {
+            86.010 * ln(waist - neck) - 70.041 * ln(height) + 36.76
+        } else {
+            require(hips != null) { "Для женщин необходимо указать окружность бедер" }
+            163.205 * ln(waist + hips - neck) - 97.684 * ln(height) - 78.387
+        }
+    }
+}
+
+// Джексон-Поллак (по кожным складкам)
+class JacksonPollock(
+    private val gender: Gender,
+    private val sumOfSkinfolds: Double,
+    private val age: Double
+) : Calculator {
+    override fun calculate(): Double {
+        val bodyDensity = if (gender == Gender.MALE) {
+            1.10938 - (0.0008267 * sumOfSkinfolds) + (0.0000016 * sumOfSkinfolds * sumOfSkinfolds) - (0.0002574 * age)
+        } else {
+            1.0994921 - (0.0009929 * sumOfSkinfolds) + (0.0000023 * sumOfSkinfolds * sumOfSkinfolds) - (0.0001392 * age)
+        }
+        return (495 / bodyDensity) - 450
+    }
+}
+
+// BMI (по индексу массы тела)
+class BMI(
+    private val weight: Double,
+    private val height: Double,
+    private val age: Double,
+    private val gender: Gender
+) : Calculator {
+    override fun calculate(): Double {
+        val bmi = weight / (height * height)
+        val sexFactor = if (gender == Gender.MALE) 10.8 else 0.0
+        return (1.20 * bmi) + (0.23 * age) - sexFactor - 5.4
+    }
+}

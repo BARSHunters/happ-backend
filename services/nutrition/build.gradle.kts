@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
     implementation(project(":shared"))
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
     implementation("org.postgresql:postgresql:42.7.2")
     implementation("com.clickhouse:clickhouse-jdbc:0.8.2:shaded-all")

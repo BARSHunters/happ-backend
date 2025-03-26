@@ -209,7 +209,7 @@ class WeightHistoryService(
     }
 
     /**
-     * Обработчик запроса от API Gateway
+     * Обработчик запроса от API Gateway. Затем отправляет ответ.
      * Слушает по каналу "weight_history:request:WeightHistoryAndPrediction"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToWeightHistoryRequest(userId:String,weightControlWish: String = "keep")
      * Отправляет по каналу "weight_history:response:WeightHistoryAndPrediction"
@@ -246,7 +246,7 @@ class WeightHistoryService(
      * @param weightControlWish Пожелание по контролю веса (по умолчанию "keep").
      * @return Результат обработки запроса.
      */
-    suspend fun processRequest(
+    internal suspend fun processRequest(
         userId: String,
         weightControlWish: String = "keep",
     ): WeightHistoryResponse {

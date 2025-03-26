@@ -73,7 +73,7 @@ class WeightHistoryServiceTest {
                         NutritionResponse(
                             userId = "user1",
                             nutritionData =
-                                listOf(
+                                mapOf(
                                     "2023-10-01" to mapOf("calories" to 2000.0),
                                     "2023-10-02" to mapOf("calories" to 2200.0),
                                 ),

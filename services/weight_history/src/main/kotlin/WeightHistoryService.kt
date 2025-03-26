@@ -1,6 +1,9 @@
 import keydb.runServiceListener
 import keydb.sendEvent
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -66,6 +69,28 @@ data class NutritionResponse(
 )
 
 /**
+ * Запрос от API Gateway
+ * @property userId Идентификатор пользователя.
+ * @property weightControlWish Пожелание по контролю веса
+ */
+@Serializable
+data class APIGatewayToWeightHistoryRequest(
+    val userId: String,
+    val weightControlWish: String = "keep",
+)
+
+/**
+ * Ответ от WeightHistoryService для API Gateway
+ * @property userId Идентификатор пользователя.
+ * @property weightHistory Список записей с историей веса (ключ - дата/время, значение - вес)
+ */
+@Serializable
+data class WeightHistoryResponse(
+    val userId: String,
+    val weightHistory: Map<String, Double>
+)
+
+/**
  * Сервис для работы с историей веса пользователя.
  * @property url URL базы данных.
  * @property user Имя пользователя базы данных.
@@ -90,16 +115,16 @@ class WeightHistoryService(
 
     /**
      * Обработчик запроса от NutritionService. Затем отправляет ответ.
-     * Слушает по каналу "request_nutrition_wish"
+     * Слушает по каналу "weight_history:request:WeightControlWish"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
-     * Отправляет по каналу "response_nutrition_wish"
+     * Отправляет по каналу "weight_history:response:WeightControlWish"
      * Отправляемые данные: закодированное Json.encodeToString - weightControlWish:String (текущее пожелание пользователя по контролю веса)
      */
     internal fun handleNutritionWishRequest(message: String) {
         try {
             val userId = Json.decodeFromString<String>(message)
             val wish = fetchWeightControlWishFromDB(userId)
-            sendEvent("response_nutrition_wish", Json.encodeToString(wish))
+            sendEvent("weight_history:response:WeightControlWish", Json.encodeToString(wish))
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)
         }
@@ -107,7 +132,7 @@ class WeightHistoryService(
 
     /**
      * Обработчик запроса от UserDataService.
-     * Слушает по каналу "request_new_weight"
+     * Слушает по каналу "weight_history:request:NewWeight"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - Pair(userId:String, weight:Double) (пара id и нового веса пользователя)
      */
     internal fun handleNewWeightRequest(message: String) {
@@ -123,7 +148,7 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от ActivityService.
-     * Слушает по каналу "response_activity_data"
+     * Слушает по каналу "activity:response:CaloriesBurned"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида ActivityResponse(userId:String, activities:List<ActivityRecord>),
      * где: ActivityRecord - это DTO вида ActivityRecord(date:String, calories:Double) (т.е. в сумме это id и список пар дата-сожжённые калории)
      */
@@ -141,7 +166,7 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от UserDataService.
-     * Слушает по каналу "response_user_data"
+     * Слушает по каналу "user_data:response:UserData"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида UserDataResponse(userId:String, weight:Double, age:Int, gender:String),
      * где: gender = {"male","female"} (т.е. в сумме - id, вес, возраст и пол пользователя)
      */
@@ -164,9 +189,9 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от NutritionService.
-     * Слушает по каналу "response_nutrition_data"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:List<Pair<String, Map<String, Double>>>,
-     * где nutritionData = список(List) из пар(Pair): дата формата yyyy-mm-dd (String) и словаря(Map) c ключом(String) и значением(Double). Вот пример такого списка:
+     * Слушает по каналу "nutrition:response:CPFC" (CPFC - это КБЖУ)
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:List<Pair<String, Map<String, Double>>>),
+     * где: nutritionData = список(List) из пар(Pair): дата формата yyyy-mm-dd (String) и словаря(Map) c ключом(String) и значением(Double). Вот пример такого списка:
      * listOf("2024-03-01" to mapOf("calories" to 2500.0, "protein" to 120.0, "fat" to 80.0, "carbs" to 300.0),
      *        "2024-03-02" to mapOf("calories" to 2300.0, "protein" to 110.0, "fat" to 70.0, "carbs" to 280.0))
      * Это то как я себе представил КБЖУ из NutritionService, можно и по другому реализовать, готов к предложениям
@@ -184,16 +209,34 @@ class WeightHistoryService(
     }
 
     /**
+     * Обработчик запроса от API Gateway
+     * Слушает по каналу "weight_history:request:WeightHistoryAndPrediction"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToWeightHistoryRequest(userId:String,weightControlWish: String = "keep")
+     * Отправляет по каналу "weight_history:response:WeightHistoryAndPrediction"
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида WeightHistoryResponse(userId:String, weightHistory: Map<String, Double>),
+     * где в Map<String, Double> String - дата/время, а Double - это вес пользователя
+     */
+    internal fun handleAPIGatewayRequest(message: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val request = Json.decodeFromString<APIGatewayToWeightHistoryRequest>(message)
+            val result = processRequest(request.userId, request.weightControlWish)
+            println("Result of request from API Gateway: $result")
+            sendEvent("weight_history:response:WeightHistoryAndPrediction", Json.encodeToString(result))
+        }
+    }
+
+    /**
      * Основная функция для запуска сервиса.
      */
     fun main(): Unit =
         runServiceListener(
             mapOf(
-                "response_activity_data" to ::handleActivityResponse,
-                "response_user_data" to ::handleUserDataResponse,
-                "response_nutrition_data" to ::handleNutritionResponse,
-                "request_nutrition_wish" to ::handleNutritionWishRequest,
-                "request_new_weight" to ::handleNewWeightRequest,
+                "activity:response:CaloriesBurned" to ::handleActivityResponse,
+                "user_data:response:UserData" to ::handleUserDataResponse,
+                "nutrition:response:CPFC" to ::handleNutritionResponse,
+                "weight_history:request:WeightControlWish" to ::handleNutritionWishRequest,
+                "weight_history:request:NewWeight" to ::handleNewWeightRequest,
+                "weight_history:request:WeightHistoryAndPrediction" to ::handleAPIGatewayRequest,
             ),
         )
 
@@ -206,7 +249,7 @@ class WeightHistoryService(
     suspend fun processRequest(
         userId: String,
         weightControlWish: String = "keep",
-    ): Map<String, Any> {
+    ): WeightHistoryResponse {
         try {
             this.userId = userId
             this.weightControlWish = weightControlWish
@@ -221,9 +264,9 @@ class WeightHistoryService(
             val predictedWeight = calculatePredictedWeight()
             addPredictedWeight(predictedWeight)
 
-            return mapOf(
-                "user_id" to userId,
-                "weight_history" to weightHistory.associate { it.dateTime to it.weight },
+            return WeightHistoryResponse(
+                userId = userId,
+                weightHistory = weightHistory.associate { it.dateTime to it.weight }
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to process request", e)

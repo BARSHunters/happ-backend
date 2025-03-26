@@ -5,6 +5,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.example.decider.Decider
+import org.example.decider.Wish
 import org.example.dto.*
 import org.example.model.User
 import org.example.service.HistoryService
@@ -66,7 +67,14 @@ object RationController {
             return
         }
 
-        val dishSet = Decider.decide(user, cache.wish ?: "")
+        val dishSet = Decider.decide(
+            user,
+            try {
+                Wish.valueOf(cache.wish ?: "KEEP")
+            } catch (e: IllegalArgumentException) {
+                Wish.KEEP
+            }
+        )
 
         RationCacheService.clearQuery(request.queryId)
         HistoryService.addHistory(cache.login, dishSet)

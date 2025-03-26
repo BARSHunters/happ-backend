@@ -2,11 +2,13 @@ package org.example.dto
 
 data class DishDTO(
     val name: String,
-    val tdee: UInt,
+
     val weight: UInt,
-    val protein: UInt,
-    val fat: UInt,
-    val carbs: UInt,
+    val tdee: Double,
+    val protein: Double,
+    val fat: Double,
+    val carbs: Double,
+
     val id: Long? = null,
     val photoId: Long? = null, // Id файла в файловом хранилище.
     // Совпадение id в CH и в MinIO - ответственность заполняющего скрипта.
@@ -18,8 +20,8 @@ data class DailyDishSetDTO(
     val breakfast: DishDTO,
     val lunch: DishDTO,
     val dinner: DishDTO,
-    val tdee: UInt = breakfast.tdee + lunch.tdee + dinner.tdee,
-    val protein: UInt = breakfast.protein + lunch.protein + dinner.protein,
-    val fat: UInt = breakfast.fat + lunch.fat + dinner.fat,
-    val carbs: UInt = breakfast.carbs + lunch.carbs + dinner.carbs,
+    val tdee: Double = breakfast.tdee + lunch.tdee + dinner.tdee,
+    val protein: Double = breakfast.protein + lunch.protein + dinner.protein,
+    val fat: Double = breakfast.fat + lunch.fat + dinner.fat,
+    val carbs: Double = breakfast.carbs + lunch.carbs + dinner.carbs,
 )

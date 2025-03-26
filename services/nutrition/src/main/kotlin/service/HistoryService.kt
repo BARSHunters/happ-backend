@@ -18,10 +18,10 @@ object HistoryService {
             buildList {
                 while (rs.next()) {
                     this += rs.getDate("date").toString() to HistoryRow(
-                        rs.getInt("total_tdee").toDouble(),
-                        rs.getInt("total_protein").toDouble(),
-                        rs.getInt("total_fat").toDouble(),
-                        rs.getInt("total_carbs").toDouble()
+                        rs.getDouble("total_tdee"),
+                        rs.getDouble("total_protein"),
+                        rs.getDouble("total_fat"),
+                        rs.getDouble("total_carbs")
                     )
                 }
             }
@@ -40,15 +40,15 @@ object HistoryService {
         )
         statement.setString(1, login)
         statement.setLong(2, dishSet.breakfast.id ?: 0)
-        statement.setLong(3, dishSet.breakfast.weight.toLong())
+        statement.setInt(3, dishSet.breakfast.weight.toInt())
         statement.setLong(4, dishSet.lunch.id ?: 0)
-        statement.setLong(5, dishSet.lunch.weight.toLong())
+        statement.setInt(5, dishSet.lunch.weight.toInt())
         statement.setLong(6, dishSet.dinner.id ?: 0)
-        statement.setLong(7, dishSet.dinner.weight.toLong())
-        statement.setInt(8, dishSet.tdee.toInt())
-        statement.setInt(9, dishSet.protein.toInt())
-        statement.setInt(10, dishSet.fat.toInt())
-        statement.setInt(11, dishSet.carbs.toInt())
+        statement.setInt(7, dishSet.dinner.weight.toInt())
+        statement.setDouble(8, dishSet.tdee)
+        statement.setDouble(9, dishSet.protein)
+        statement.setDouble(10, dishSet.fat)
+        statement.setDouble(11, dishSet.carbs)
         statement.executeUpdate()
         statement.close()
         connection.close()

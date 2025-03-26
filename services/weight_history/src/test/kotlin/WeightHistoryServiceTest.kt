@@ -1,8 +1,10 @@
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.verify
 import keydb.sendEvent
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
@@ -34,59 +36,60 @@ class WeightHistoryServiceTest {
     }
 
     @Test
-    fun testProcessRequest() {
-        // Мокируем данные, которые возвращаются из внешних сервисов
-        every { weightHistoryService.fetchActivityData(any()) } answers {
-            weightHistoryService.handleActivityResponse(
-                Json.encodeToString(
-                    ActivityResponse(
-                        userId = "user1",
-                        activities =
-                            listOf(
-                                ActivityRecord("2023-10-01", 500.0),
-                                ActivityRecord("2023-10-02", 600.0),
-                            ),
+    fun testProcessRequest() =
+        runTest {
+            // Мокируем данные, которые возвращаются из внешних сервисов
+            coEvery { weightHistoryService.fetchActivityData(any()) } answers {
+                weightHistoryService.handleActivityResponse(
+                    Json.encodeToString(
+                        ActivityResponse(
+                            userId = "user1",
+                            activities =
+                                listOf(
+                                    ActivityRecord("2023-10-01", 500.0),
+                                    ActivityRecord("2023-10-02", 600.0),
+                                ),
+                        ),
                     ),
-                ),
-            )
-        }
+                )
+            }
 
-        every { weightHistoryService.fetchUserData(any()) } answers {
-            weightHistoryService.handleUserDataResponse(
-                Json.encodeToString(
-                    UserDataResponse(
-                        userId = "user1",
-                        weight = 70.0,
-                        age = 30,
-                        gender = "male",
+            coEvery { weightHistoryService.fetchUserData(any()) } answers {
+                weightHistoryService.handleUserDataResponse(
+                    Json.encodeToString(
+                        UserDataResponse(
+                            userId = "user1",
+                            weight = 70.0,
+                            age = 30,
+                            gender = "male",
+                        ),
                     ),
-                ),
-            )
-        }
+                )
+            }
 
-        every { weightHistoryService.fetchNutritionData(any()) } answers {
-            weightHistoryService.handleNutritionResponse(
-                Json.encodeToString(
-                    NutritionResponse(
-                        userId = "user1",
-                        nutritionData =
-                            listOf(
-                                "2023-10-01" to mapOf("calories" to 2000.0),
-                                "2023-10-02" to mapOf("calories" to 2200.0),
-                            ),
+            coEvery { weightHistoryService.fetchNutritionData(any()) } answers {
+                weightHistoryService.handleNutritionResponse(
+                    Json.encodeToString(
+                        NutritionResponse(
+                            userId = "user1",
+                            nutritionData =
+                                listOf(
+                                    "2023-10-01" to mapOf("calories" to 2000.0),
+                                    "2023-10-02" to mapOf("calories" to 2200.0),
+                                ),
+                        ),
                     ),
-                ),
-            )
+                )
+            }
+
+            // Вызываем метод processRequest
+            val result = weightHistoryService.processRequest("user1", "keep")
+
+            // Проверяем, что результат содержит ожидаемые данные
+            assertTrue(result.containsKey("user_id"))
+            assertTrue(result.containsKey("weight_history"))
+            assertEquals("user1", result["user_id"])
         }
-
-        // Вызываем метод processRequest
-        val result = weightHistoryService.processRequest("user1", "keep")
-
-        // Проверяем, что результат содержит ожидаемые данные
-        assertTrue(result.containsKey("user_id"))
-        assertTrue(result.containsKey("weight_history"))
-        assertEquals("user1", result["user_id"])
-    }
 
     @Test
     fun testSaveWeightToDB() {

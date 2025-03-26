@@ -3,8 +3,26 @@ package org.example.dto
 import org.example.calculators.BodyFatCalculatorType
 import org.example.calculators.TDEECalculatorType
 import org.example.model.Gender
+import java.util.*
+
+data class RationRequestDTO(
+    val queryId: UUID,
+    val login: String,
+)
+
+data class WishResponseDTO(
+    val queryId: UUID,
+    val wish: String
+)
+
+data class UserDataRequestDTO(
+    val queryId: UUID,
+    val login: String,
+)
 
 data class UserDTO(
+    val queryId: UUID,
+
     val login: String,
     val weight: UInt,
     val height: UInt,
@@ -23,4 +41,15 @@ data class UserDTO(
     // предпочтительные калькуляторы
     val preferredTDEECalculator: TDEECalculatorType?,
     val preferredBodyFatCalculator: BodyFatCalculatorType?
+)
+
+data class RationCacheDTO(
+    val queryId: UUID,
+    val login: String,
+    val wish: String?
+)
+
+data class RationResponseDTO(
+    val queryId: UUID,
+    val dishSetDTO: DailyDishSetDTO
 )

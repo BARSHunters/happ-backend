@@ -1,7 +1,7 @@
 package org.example
 
 import com.zaxxer.hikari.*
-import javax.sql.DataSource
+import java.sql.Connection
 
 object Database {
     private var chDataSource: HikariDataSource = HikariDataSource()
@@ -21,6 +21,6 @@ object Database {
         chDataSource.jdbcUrl = Config.getProperty("ch.jdbcUrl")
     }
 
-    fun getCHConnection() = chDataSource.connection
-    fun getPGConnection() = pgDataSource.connection
+    fun getCHConnection(): Connection = chDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
+    fun getPGConnection(): Connection = pgDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
 }

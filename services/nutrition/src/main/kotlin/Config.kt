@@ -32,7 +32,8 @@ object Config {
     private fun replaceEnvVariables(value: String): String {
         return value.replace(Regex("\\$\\{(.*?)}")) { matchResult ->
             val envVarName = matchResult.groupValues[1]
-            System.getenv(envVarName) ?: env[envVarName] ?: throw IllegalStateException("Environment variable $envVarName not found")
+            System.getenv(envVarName) ?: env[envVarName]
+            ?: throw IllegalStateException("Environment variable $envVarName not found")
         }
     }
 

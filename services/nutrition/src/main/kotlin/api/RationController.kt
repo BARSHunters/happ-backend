@@ -5,25 +5,50 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.example.decider.Decider
-import org.example.dto.UserDTO
+import org.example.dto.*
 import org.example.model.User
+import org.example.service.HistoryService
+import org.example.service.RationCacheService
 
 object RationController {
-    fun requestTodayRation(username: String) {
-        // update тут же или..? если тут же, то не просто username, а что делаем и с каким блюдом
-        // TODO подумать как отправить оба (и главное обработать) sendEvent разом ради асинхронности
-        sendEvent("request_nutrition_wish", username)
+    fun requestTodayRation(msg: String) {
+        val request: RationRequestDTO = try {
+            Json.decodeFromString(msg)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            sendEvent("error", "Invalid JSON format")
+            return
+        }
+        RationCacheService.initQuery(request)
+        sendEvent("request_nutrition_wish", Json.encodeToString(request))
     }
 
-    fun afterFetchFromWeightHistoryService(msg: String){
-        // в msg должен лежать username и пожелание. username прокинуть дальше, а пожелание:
-        // TODO запомнить полученный тип рациона  (для набора/сброса/поддержания массы)
-        sendEvent("getUserData", "username")
+    fun afterFetchFromWeightHistoryService(msg: String) {
+        val request: WishResponseDTO = try {
+            Json.decodeFromString(msg)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            sendEvent("error", "Invalid JSON format")
+            return
+        }
+
+        val cache: RationCacheDTO
+        try {
+            cache = RationCacheService.getByQueryId(request.queryId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.queryId, "Skipped stages for this query")))
+            return
+        }
+
+        RationCacheService.saveWish(request.queryId, request.wish)
+
+        sendEvent("getUserData", Json.encodeToString(UserDataRequestDTO(request.queryId, cache.login)))
     }
 
-    fun afterFetchFromUserDataService(msg: String){
+    fun afterFetchFromUserDataService(msg: String) {
         val request: UserDTO = try {
-            Json.decodeFromString(msg) // TODO форматы пока не совпадают
+            Json.decodeFromString(msg) // FIXME форматы пока не совпадают
         } catch (e: SerializationException) {
             e.printStackTrace()
             sendEvent("error", "Invalid JSON format")
@@ -32,11 +57,20 @@ object RationController {
 
         val user = User(request)
 
-        val result = Decider.decide(user)
+        val cache: RationCacheDTO
+        try {
+            cache = RationCacheService.getByQueryId(request.queryId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.queryId, "Skipped stages for this query")))
+            return
+        }
 
-        // TODO запись рациона
+        val dishSet = Decider.decide(user, cache.wish ?: "")
 
-        sendEvent("nutrition:response_today_ration", Json.encodeToString(result))
+        RationCacheService.clearQuery(request.queryId)
+        HistoryService.addHistory(cache.login, dishSet)
+        sendEvent("nutrition:response_today_ration", Json.encodeToString(RationResponseDTO(request.queryId, dishSet)))
     }
 
 

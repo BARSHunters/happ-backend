@@ -65,7 +65,7 @@ data class UserDataResponse(
 @Serializable
 data class NutritionResponse(
     val userId: String,
-    val nutritionData: List<Pair<String, Map<String, Double>>>,
+    val nutritionData: Map<String, Map<String, Double>>,
 )
 
 /**
@@ -105,7 +105,7 @@ class WeightHistoryService(
     internal var weightControlWish: String = "keep"
     internal var weightHistory: List<WeightHistoryEntry> = emptyList()
     internal var activityData: Map<String, Double> = emptyMap()
-    internal var nutritionData: List<Pair<String, Map<String, Double>>> = emptyList()
+    internal var nutritionData: Map<String, Map<String, Double>> = emptyMap()
     internal var age: Int = 30
     internal var gender: String = "male"
     internal var height: Int = 176
@@ -190,10 +190,10 @@ class WeightHistoryService(
     /**
      * Обработчик ответа от NutritionService.
      * Слушает по каналу "nutrition:response:CPFC" (CPFC - это КБЖУ)
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:List<Pair<String, Map<String, Double>>>),
-     * где: nutritionData = список(List) из пар(Pair): дата формата yyyy-mm-dd (String) и словаря(Map) c ключом(String) и значением(Double). Вот пример такого списка:
-     * listOf("2024-03-01" to mapOf("calories" to 2500.0, "protein" to 120.0, "fat" to 80.0, "carbs" to 300.0),
-     *        "2024-03-02" to mapOf("calories" to 2300.0, "protein" to 110.0, "fat" to 70.0, "carbs" to 280.0))
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:Map<String, Map<String, Double>>),
+     * где: nutritionData = словарь(Map) с ключом (String - датой формата yyyy-mm-dd) и значением - словарь(Map) c ключом(String) и значением(Double). Вот пример такого списка:
+     * mapOf("2024-03-01" to mapOf("calories" to 2500.0, "protein" to 120.0, "fat" to 80.0, "carbs" to 300.0),
+     *     "2024-03-02" to mapOf("calories" to 2300.0, "protein" to 110.0, "fat" to 70.0, "carbs" to 280.0))
      * Это то как я себе представил КБЖУ из NutritionService, можно и по другому реализовать, готов к предложениям
      */
     internal fun handleNutritionResponse(message: String) {
@@ -405,14 +405,14 @@ class WeightHistoryService(
     /**
      * Запрашивает данные о активности пользователя.
      * Отправляет запрос сервису ActivityService
-     * Отправляет по каналу "request_activity_data"
+     * Отправляет по каналу "activity:request:caloriesBurned"
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal suspend fun fetchActivityData(userId: String) {
         try {
             activityDataReceived = CompletableDeferred()
-            sendEvent("request_activity_data", Json.encodeToString(userId))
+            sendEvent("activity:request:caloriesBurned", Json.encodeToString(userId))
             println("Activity data requested for user: $userId")
             activityDataReceived.await()
         } catch (e: Exception) {
@@ -423,14 +423,14 @@ class WeightHistoryService(
     /**
      * Запрашивает данные о пользователе.
      * Отправляет запрос сервису UserDataService
-     * Отправляет по каналу "request_user_data"
+     * Отправляет по каналу "user_data:request:UserData"
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal suspend fun fetchUserData(userId: String) {
         try {
             userDataReceived = CompletableDeferred()
-            sendEvent("request_user_data", Json.encodeToString(userId))
+            sendEvent("user_data:request:UserData", Json.encodeToString(userId))
             println("User data requested for user: $userId")
             userDataReceived.await()
         } catch (e: Exception) {
@@ -441,14 +441,14 @@ class WeightHistoryService(
     /**
      * Запрашивает данные о питании пользователя.
      * Отправляет запрос сервису NutritionService
-     * Отправляет по каналу "request_nutrition_data"
+     * Отправляет по каналу "nutrition:request:CPFC"
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
     internal suspend fun fetchNutritionData(userId: String) {
         try {
             nutritionDataReceived = CompletableDeferred()
-            sendEvent("request_nutrition_data", Json.encodeToString(userId))
+            sendEvent("nutrition:request:CPFC", Json.encodeToString(userId))
             println("Nutrition data requested for user: $userId")
             nutritionDataReceived.await()
         } catch (e: Exception) {
@@ -472,10 +472,7 @@ class WeightHistoryService(
             )
 
         weightHistory.forEach { entry ->
-            val caloriesIntake =
-                nutritionData
-                    .firstOrNull { it.first == entry.dateTime.split(" ")[0] }
-                    ?.second?.get("calories") ?: 2000.0
+            val caloriesIntake = nutritionData[entry.dateTime.split(" ")[0]]?.get("calories") ?: 2000.0
 
             val caloriesBurned = activityData[entry.dateTime.split(" ")[0]] ?: 0.0
 

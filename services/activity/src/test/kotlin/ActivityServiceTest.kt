@@ -1,5 +1,10 @@
+import io.mockk.Runs
+import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.spyk
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -15,29 +20,33 @@ class ActivityServiceTest {
         activityService = spyk(ActivityService()) // Используем spyk для частичного мокинга
 
         // Мокируем fetchUserData, чтобы он возвращал фиктивные данные
-        every { activityService.fetchUserData() } answers {
+        coEvery { activityService.fetchUserData() } answers {
             activityService.weight = 70.0
             activityService.age = 30
             activityService.gender = "male"
         }
+
+        // Мокируем вызов внешнего сервиса (делаем его пустым)
+        every { activityService.sendTrainingDataToAchievementAndNotifyService() } just Runs
     }
 
     @Test
-    fun testParseWorkout() {
-        val jsonWorkout =
-            """
-            {
-                "duration": "01:30:00",
-                "heartRates": [
-                    {"timestamp": 1700000000, "heartRate": 120},
-                    {"timestamp": 1700000100, "heartRate": 130}
-                ]
-            }
-            """.trimIndent()
+    fun testParseWorkout() =
+        runTest {
+            val jsonWorkout =
+                """
+                {
+                    "duration": "01:30:00",
+                    "heartRates": [
+                        {"timestamp": 1700000000, "heartRate": 120},
+                        {"timestamp": 1700000100, "heartRate": 130}
+                    ]
+                }
+                """.trimIndent()
 
-        activityService.processRequest("user1", jsonWorkout)
-        assertEquals(5400, activityService.trainingDuration) // 1 час 30 минут = 5400 секунд
-    }
+            activityService.processRequest("user1", jsonWorkout)
+            assertEquals(5400, activityService.trainingDuration) // 1 час 30 минут = 5400 секунд
+        }
 
     @Test
     fun testCalculateHeartRateMetrics() {
@@ -98,29 +107,30 @@ class ActivityServiceTest {
     }
 
     @Test
-    fun testSaveAndFetchFromDatabase() {
-        val userId = "testUser"
-        val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+    fun testSaveAndFetchFromDatabase() =
+        runTest {
+            val userId = "testUser"
+            val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
-        // Сохраняем данные
-        activityService.processRequest(
-            userId,
-            """
-            {
-                "duration": "01:00:00",
-                "heartRates": [
-                    {"timestamp": 1700000000, "heartRate": 120}
-                ]
-            }
-            """.trimIndent(),
-            trainingDate,
-        )
+            // Сохраняем данные
+            activityService.processRequest(
+                userId,
+                """
+                {
+                    "duration": "01:00:00",
+                    "heartRates": [
+                        {"timestamp": 1700000000, "heartRate": 120}
+                    ]
+                }
+                """.trimIndent(),
+                trainingDate,
+            )
 
-        // Получаем данные
-        val result = activityService.processRequest(userId, trainingDate = trainingDate) as Map<*, *>
-        assertEquals(userId, result["user_id"])
-        assertEquals(3600, result["training_duration"]) // 1 час = 3600 секунд
-    }
+            // Получаем данные
+            val result = activityService.processRequest(userId, trainingDate = trainingDate) as Map<*, *>
+            assertEquals(userId, result["user_id"])
+            assertEquals(3600, result["training_duration"]) // 1 час = 3600 секунд
+        }
 
     @Test
     fun testInvalidWorkoutData() {
@@ -133,7 +143,9 @@ class ActivityServiceTest {
             """.trimIndent()
 
         assertThrows(RuntimeException::class.java) {
-            activityService.processRequest("user1", invalidJsonWorkout)
+            runBlocking {
+                activityService.processRequest("user1", invalidJsonWorkout)
+            }
         }
     }
 

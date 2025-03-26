@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "happ-backend"
-version = "1.0-SNAPSHOT"
+version = "1.1"
 
 repositories {
     mavenCentral()
@@ -19,7 +19,8 @@ application {
 dependencies {
     implementation(project(":shared"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testImplementation("io.mockk:mockk:1.13.4")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.postgresql:postgresql:42.7.2")

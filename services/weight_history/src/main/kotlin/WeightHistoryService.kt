@@ -87,7 +87,7 @@ data class APIGatewayToWeightHistoryRequest(
 @Serializable
 data class WeightHistoryResponse(
     val userId: String,
-    val weightHistory: Map<String, Double>
+    val weightHistory: Map<String, Double>,
 )
 
 /**
@@ -266,7 +266,7 @@ class WeightHistoryService(
 
             return WeightHistoryResponse(
                 userId = userId,
-                weightHistory = weightHistory.associate { it.dateTime to it.weight }
+                weightHistory = weightHistory.associate { it.dateTime to it.weight },
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to process request", e)

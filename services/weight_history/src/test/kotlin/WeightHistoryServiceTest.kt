@@ -9,8 +9,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
@@ -86,9 +86,8 @@ class WeightHistoryServiceTest {
             val result = weightHistoryService.processRequest("user1", "keep")
 
             // Проверяем, что результат содержит ожидаемые данные
-            assertTrue(result.containsKey("user_id"))
-            assertTrue(result.containsKey("weight_history"))
-            assertEquals("user1", result["user_id"])
+            assertEquals("user1", result.userId)
+            assertFalse(result.weightHistory.isEmpty())
         }
 
     @Test

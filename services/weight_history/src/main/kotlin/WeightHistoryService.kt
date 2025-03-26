@@ -1,5 +1,9 @@
 import keydb.runServiceListener
 import keydb.sendEvent
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -61,7 +65,29 @@ data class UserDataResponse(
 @Serializable
 data class NutritionResponse(
     val userId: String,
-    val nutritionData: List<Pair<String, Map<String, Double>>>,
+    val nutritionData: Map<String, Map<String, Double>>,
+)
+
+/**
+ * Запрос от API Gateway
+ * @property userId Идентификатор пользователя.
+ * @property weightControlWish Пожелание по контролю веса
+ */
+@Serializable
+data class APIGatewayToWeightHistoryRequest(
+    val userId: String,
+    val weightControlWish: String = "keep",
+)
+
+/**
+ * Ответ от WeightHistoryService для API Gateway
+ * @property userId Идентификатор пользователя.
+ * @property weightHistory Список записей с историей веса (ключ - дата/время, значение - вес)
+ */
+@Serializable
+data class WeightHistoryResponse(
+    val userId: String,
+    val weightHistory: Map<String, Double>,
 )
 
 /**
@@ -79,23 +105,26 @@ class WeightHistoryService(
     internal var weightControlWish: String = "keep"
     internal var weightHistory: List<WeightHistoryEntry> = emptyList()
     internal var activityData: Map<String, Double> = emptyMap()
-    internal var nutritionData: List<Pair<String, Map<String, Double>>> = emptyList()
+    internal var nutritionData: Map<String, Map<String, Double>> = emptyMap()
     internal var age: Int = 30
     internal var gender: String = "male"
     internal var height: Int = 176
+    internal var userDataReceived = CompletableDeferred<Unit>()
+    internal var activityDataReceived = CompletableDeferred<Unit>()
+    internal var nutritionDataReceived = CompletableDeferred<Unit>()
 
     /**
      * Обработчик запроса от NutritionService. Затем отправляет ответ.
-     * Слушает по каналу "request_nutrition_wish"
+     * Слушает по каналу "weight_history:request:WeightControlWish"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
-     * Отправляет по каналу "response_nutrition_wish"
+     * Отправляет по каналу "weight_history:response:WeightControlWish"
      * Отправляемые данные: закодированное Json.encodeToString - weightControlWish:String (текущее пожелание пользователя по контролю веса)
      */
     internal fun handleNutritionWishRequest(message: String) {
         try {
             val userId = Json.decodeFromString<String>(message)
             val wish = fetchWeightControlWishFromDB(userId)
-            sendEvent("response_nutrition_wish", Json.encodeToString(wish))
+            sendEvent("weight_history:response:WeightControlWish", Json.encodeToString(wish))
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)
         }
@@ -103,7 +132,7 @@ class WeightHistoryService(
 
     /**
      * Обработчик запроса от UserDataService.
-     * Слушает по каналу "request_new_weight"
+     * Слушает по каналу "weight_history:request:NewWeight"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - Pair(userId:String, weight:Double) (пара id и нового веса пользователя)
      */
     internal fun handleNewWeightRequest(message: String) {
@@ -119,7 +148,7 @@ class WeightHistoryService(
 
     /**
      * Обработчик ответа от ActivityService.
-     * Слушает по каналу "response_activity_data"
+     * Слушает по каналу "activity:response:CaloriesBurned"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида ActivityResponse(userId:String, activities:List<ActivityRecord>),
      * где: ActivityRecord - это DTO вида ActivityRecord(date:String, calories:Double) (т.е. в сумме это id и список пар дата-сожжённые калории)
      */
@@ -130,12 +159,14 @@ class WeightHistoryService(
             println("Activity data received for user: ${response.userId}")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle activity response", e)
+        } finally {
+            activityDataReceived.complete(Unit)
         }
     }
 
     /**
      * Обработчик ответа от UserDataService.
-     * Слушает по каналу "response_user_data"
+     * Слушает по каналу "user_data:response:UserData"
      * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида UserDataResponse(userId:String, weight:Double, age:Int, gender:String),
      * где: gender = {"male","female"} (т.е. в сумме - id, вес, возраст и пол пользователя)
      */
@@ -144,22 +175,25 @@ class WeightHistoryService(
             val response = Json.decodeFromString<UserDataResponse>(message)
             this.age = response.age
             validateWeight(response.weight)
-            saveWeightToDB(userId, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
+//            saveWeightToDB(userId, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
+//            закомментировал, так как вызывает проблемы при одинаковых каналах взаимодействия с UserData
             this.gender = response.gender
             this.height = if (response.gender == "male") 176 else 164
             println("User data received: $response")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle user data response", e)
+        } finally {
+            userDataReceived.complete(Unit)
         }
     }
 
     /**
      * Обработчик ответа от NutritionService.
-     * Слушает по каналу "response_nutrition_data"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:List<Pair<String, Map<String, Double>>>,
-     * где nutritionData = список(List) из пар(Pair): дата формата yyyy-mm-dd (String) и словаря(Map) c ключом(String) и значением(Double). Вот пример такого списка:
-     * listOf("2024-03-01" to mapOf("calories" to 2500.0, "protein" to 120.0, "fat" to 80.0, "carbs" to 300.0),
-     *        "2024-03-02" to mapOf("calories" to 2300.0, "protein" to 110.0, "fat" to 70.0, "carbs" to 280.0))
+     * Слушает по каналу "nutrition:response:CPFC" (CPFC - это КБЖУ)
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида NutritionResponse(userId:String, nutritionData:Map<String, Map<String, Double>>),
+     * где: nutritionData = словарь(Map) с ключом (String - датой формата yyyy-mm-dd) и значением - словарь(Map) c ключом(String) и значением(Double). Вот пример такого списка:
+     * mapOf("2024-03-01" to mapOf("calories" to 2500.0, "protein" to 120.0, "fat" to 80.0, "carbs" to 300.0),
+     *     "2024-03-02" to mapOf("calories" to 2300.0, "protein" to 110.0, "fat" to 70.0, "carbs" to 280.0))
      * Это то как я себе представил КБЖУ из NutritionService, можно и по другому реализовать, готов к предложениям
      */
     internal fun handleNutritionResponse(message: String) {
@@ -169,6 +203,25 @@ class WeightHistoryService(
             println("Nutrition data received for user: ${response.userId}")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition response", e)
+        } finally {
+            nutritionDataReceived.complete(Unit)
+        }
+    }
+
+    /**
+     * Обработчик запроса от API Gateway. Затем отправляет ответ.
+     * Слушает по каналу "weight_history:request:WeightHistoryAndPrediction"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToWeightHistoryRequest(userId:String,weightControlWish: String = "keep")
+     * Отправляет по каналу "weight_history:response:WeightHistoryAndPrediction"
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида WeightHistoryResponse(userId:String, weightHistory: Map<String, Double>),
+     * где в Map<String, Double> String - дата/время, а Double - это вес пользователя
+     */
+    internal fun handleAPIGatewayRequest(message: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val request = Json.decodeFromString<APIGatewayToWeightHistoryRequest>(message)
+            val result = processRequest(request.userId, request.weightControlWish)
+            println("Result of request from API Gateway: $result")
+            sendEvent("weight_history:response:WeightHistoryAndPrediction", Json.encodeToString(result))
         }
     }
 
@@ -178,11 +231,12 @@ class WeightHistoryService(
     fun main(): Unit =
         runServiceListener(
             mapOf(
-                "response_activity_data" to ::handleActivityResponse,
-                "response_user_data" to ::handleUserDataResponse,
-                "response_nutrition_data" to ::handleNutritionResponse,
-                "request_nutrition_wish" to ::handleNutritionWishRequest,
-                "request_new_weight" to ::handleNewWeightRequest,
+                "activity:response:CaloriesBurned" to ::handleActivityResponse,
+                "user_data:response:UserData" to ::handleUserDataResponse,
+                "nutrition:response:CPFC" to ::handleNutritionResponse,
+                "weight_history:request:WeightControlWish" to ::handleNutritionWishRequest,
+                "weight_history:request:NewWeight" to ::handleNewWeightRequest,
+                "weight_history:request:WeightHistoryAndPrediction" to ::handleAPIGatewayRequest,
             ),
         )
 
@@ -192,10 +246,10 @@ class WeightHistoryService(
      * @param weightControlWish Пожелание по контролю веса (по умолчанию "keep").
      * @return Результат обработки запроса.
      */
-    fun processRequest(
+    internal suspend fun processRequest(
         userId: String,
         weightControlWish: String = "keep",
-    ): Map<String, Any> {
+    ): WeightHistoryResponse {
         try {
             this.userId = userId
             this.weightControlWish = weightControlWish
@@ -210,9 +264,9 @@ class WeightHistoryService(
             val predictedWeight = calculatePredictedWeight()
             addPredictedWeight(predictedWeight)
 
-            return mapOf(
-                "user_id" to userId,
-                "weight_history" to weightHistory.associate { it.dateTime to it.weight },
+            return WeightHistoryResponse(
+                userId = userId,
+                weightHistory = weightHistory.associate { it.dateTime to it.weight },
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to process request", e)
@@ -351,14 +405,16 @@ class WeightHistoryService(
     /**
      * Запрашивает данные о активности пользователя.
      * Отправляет запрос сервису ActivityService
-     * Отправляет по каналу "request_activity_data"
+     * Отправляет по каналу "activity:request:caloriesBurned"
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchActivityData(userId: String) {
+    internal suspend fun fetchActivityData(userId: String) {
         try {
-            sendEvent("request_activity_data", Json.encodeToString(userId))
+            activityDataReceived = CompletableDeferred()
+            sendEvent("activity:request:caloriesBurned", Json.encodeToString(userId))
             println("Activity data requested for user: $userId")
+            activityDataReceived.await()
         } catch (e: Exception) {
             throw RuntimeException("Failed to fetch activity data", e)
         }
@@ -367,14 +423,16 @@ class WeightHistoryService(
     /**
      * Запрашивает данные о пользователе.
      * Отправляет запрос сервису UserDataService
-     * Отправляет по каналу "request_user_data"
+     * Отправляет по каналу "user_data:request:UserData"
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchUserData(userId: String) {
+    internal suspend fun fetchUserData(userId: String) {
         try {
-            sendEvent("request_user_data", Json.encodeToString(userId))
+            userDataReceived = CompletableDeferred()
+            sendEvent("user_data:request:UserData", Json.encodeToString(userId))
             println("User data requested for user: $userId")
+            userDataReceived.await()
         } catch (e: Exception) {
             throw RuntimeException("Failed to fetch user data", e)
         }
@@ -383,14 +441,16 @@ class WeightHistoryService(
     /**
      * Запрашивает данные о питании пользователя.
      * Отправляет запрос сервису NutritionService
-     * Отправляет по каналу "request_nutrition_data"
+     * Отправляет по каналу "nutrition:request:CPFC"
      * @param userId Идентификатор пользователя.
      * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
      */
-    internal fun fetchNutritionData(userId: String) {
+    internal suspend fun fetchNutritionData(userId: String) {
         try {
-            sendEvent("request_nutrition_data", Json.encodeToString(userId))
+            nutritionDataReceived = CompletableDeferred()
+            sendEvent("nutrition:request:CPFC", Json.encodeToString(userId))
             println("Nutrition data requested for user: $userId")
+            nutritionDataReceived.await()
         } catch (e: Exception) {
             throw RuntimeException("Failed to fetch nutrition data", e)
         }
@@ -412,10 +472,7 @@ class WeightHistoryService(
             )
 
         weightHistory.forEach { entry ->
-            val caloriesIntake =
-                nutritionData
-                    .firstOrNull { it.first == entry.dateTime.split(" ")[0] }
-                    ?.second?.get("calories") ?: 2000.0
+            val caloriesIntake = nutritionData[entry.dateTime.split(" ")[0]]?.get("calories") ?: 2000.0
 
             val caloriesBurned = activityData[entry.dateTime.split(" ")[0]] ?: 0.0
 

@@ -44,7 +44,7 @@ class ActivityServiceTest {
                 }
                 """.trimIndent()
 
-            activityService.processRequest("user1", jsonWorkout)
+            activityService.processRequestAddTraining("user1", jsonWorkout)
             assertEquals(5400, activityService.trainingDuration) // 1 час 30 минут = 5400 секунд
         }
 
@@ -113,7 +113,7 @@ class ActivityServiceTest {
             val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
             // Сохраняем данные
-            activityService.processRequest(
+            activityService.processRequestAddTraining(
                 userId,
                 """
                 {
@@ -127,9 +127,9 @@ class ActivityServiceTest {
             )
 
             // Получаем данные
-            val result = activityService.processRequest(userId, trainingDate = trainingDate) as Map<*, *>
-            assertEquals(userId, result["user_id"])
-            assertEquals(3600, result["training_duration"]) // 1 час = 3600 секунд
+            val result = activityService.processRequestGetSomeTraining(userId, trainingDate = trainingDate)
+            assertEquals(userId, result.userId)
+            assertEquals(3600, result.trainingDuration) // 1 час = 3600 секунд
         }
 
     @Test
@@ -144,7 +144,7 @@ class ActivityServiceTest {
 
         assertThrows(RuntimeException::class.java) {
             runBlocking {
-                activityService.processRequest("user1", invalidJsonWorkout)
+                activityService.processRequestAddTraining("user1", invalidJsonWorkout)
             }
         }
     }

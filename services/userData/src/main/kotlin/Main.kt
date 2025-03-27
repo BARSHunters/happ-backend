@@ -15,58 +15,58 @@ fun afterStartup() {
     println("Service userData is running")
 }
 
-fun createUserData(userData: String) {
-    userDataController.handleCreateUserData(userData)
+fun createUserData(requestBody: String) {
+    userDataController.handleCreateUserData(requestBody)
 }
 
-fun updateUserData(userData: String) {
-    userDataController.handleUpdateUserData(userData)
+fun updateUserData(requestBody: String) {
+    userDataController.handleUpdateUserData(requestBody)
 }
 
-fun getUserData(username: String) {
-    userDataController.receiveUserData(username)
+fun getUserData(requestBody: String) {
+    userDataController.receiveUserData(requestBody)
 }
 
-fun getName(username: String) {
-    userDataController.receiveName(username)
+fun getName(requestBody: String) {
+    userDataController.receiveName(requestBody)
 }
 
-fun getGender(username: String) {
-    userDataController.receiveGender(username)
+fun getGender(requestBody: String) {
+    userDataController.receiveGender(requestBody)
 }
 
-fun getBirthDate(username: String) {
-    userDataController.receiveBirthDate(username)
+fun getBirthDate(requestBody: String) {
+    userDataController.receiveBirthDate(requestBody)
 }
 
-fun getAge(username: String) {
-    userDataController.receiveAge(username)
+fun getAge(requestBody: String) {
+    userDataController.receiveAge(requestBody)
 }
 
-fun getHeight(username: String) {
-    userDataController.receiveHeight(username)
+fun getHeight(requestBody: String) {
+    userDataController.receiveHeight(requestBody)
 }
 
-fun getWeight(username: String) {
-    userDataController.receiveWeight(username)
+fun getWeight(requestBody: String) {
+    userDataController.receiveWeight(requestBody)
 }
 
-fun getWeightDesire(username: String) {
-    userDataController.receiveWeightDesire(username)
+fun getWeightDesire(requestBody: String) {
+    userDataController.receiveWeightDesire(requestBody)
 }
 
 fun main(): Unit = runServiceListener(
     mapOf(
-        "createUserDataRequest" to ::createUserData,
-        "updateUserData" to ::updateUserData,
-        "getUserData" to ::getUserData,
-        "getName" to ::getName,
-        "getGender" to ::getGender,
-        "getBirthDate" to ::getBirthDate,
-        "getAge" to ::getAge,
-        "getHeight" to ::getHeight,
-        "getWeight" to ::getWeight,
-        "getWeightDesire" to ::getWeightDesire,
+        "user_data:request:CreateUserData" to ::createUserData,
+        "user_data:request:UpdateUserData" to ::updateUserData,
+        "user_data:request:UserData" to ::getUserData,
+        "user_data:request:Name" to ::getName,
+        "user_data:request:Gender" to ::getGender,
+        "user_data:request:BirthDate" to ::getBirthDate,
+        "user_data:request:Age" to ::getAge,
+        "user_data:request:Height" to ::getHeight,
+        "user_data:request:Weight" to ::getWeight,
+        "user_data:request:WeightDesire" to ::getWeightDesire,
     ),
     ::afterStartup
 )

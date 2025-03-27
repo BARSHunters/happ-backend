@@ -67,7 +67,7 @@ class UserDataControllerTest {
         controller.handleUpdateUserData(jsonRequest)
         verify {
             sendEvent(
-                "createWeightHistory",
+                "new_request_weight",
                 match { it.contains("\"username\":\"testuser\"") && it.contains("\"weightKg\":75.0") }
             )
         }
@@ -91,7 +91,7 @@ class UserDataControllerTest {
         every { userDataService.getAge("testuser") } returns 35
         every { sendEvent(any(), any()) } just Runs
         controller.receiveAge("testuser")
-        verify { sendEvent("sendAge", "35") }
+        verify { sendEvent("sendAge", """{ "id": "1",  """) }
     }
 
     @Test

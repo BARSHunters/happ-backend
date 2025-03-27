@@ -2,6 +2,12 @@ import controller.AuthController
 import database.Database
 import keydb.runServiceListener
 import keydb.sendEvent
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import model.ErrorType
+import model.request.TokenDto
+import model.response.ErrorDto
+import model.response.MessageResponse
 import repository.TokenRepository
 import repository.UserRepository
 import service.UserService
@@ -18,19 +24,45 @@ fun afterStartup() {
 
 }
 
-fun receiveJwtToken(token: String) {
+fun receiveJwtToken(requestBody: String) {
+    val request: TokenDto = try {
+        Json.decodeFromString<TokenDto>(requestBody)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        val errorMessage = "Invalid JSON format"
+        val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+        val response = Json.encodeToString(error)
+        sendEvent("error", response)
+        return
+    }
+    val token = request.token
     if (userService.validateJwtToken(token)) {
-        sendEvent("jwtValidationResponse", "valid")
+        val response = MessageResponse(request.id, "valid")
+        sendEvent("auth:response:JwtValidation", Json.encodeToString(response))
     } else {
-        sendEvent("jwtValidationResponse", "invalid")
+        val response = MessageResponse(request.id, "invalid")
+        sendEvent("auth:response:JwtValidation", Json.encodeToString(response))
     }
 }
 
-fun revokeJwtToken(token: String) {
+fun revokeJwtToken(requestBody: String) {
+    val request: TokenDto = try {
+        Json.decodeFromString<TokenDto>(requestBody)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        val errorMessage = "Invalid JSON format"
+        val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+        val response = Json.encodeToString(error)
+        sendEvent("error", response)
+        return
+    }
+    val token = request.token
     if (userService.revokeJwtToken(token)) {
-        sendEvent("jwtRevokeResponse", "success")
+        val response = MessageResponse(request.id, "success")
+        sendEvent("auth:response:JwtRevoke", Json.encodeToString(response))
     } else {
-        sendEvent("jwtRevokeResponse", "error")
+        val response = MessageResponse(request.id, "error")
+        sendEvent("auth:response:JwtRevoke", Json.encodeToString(response))
     }
 }
 
@@ -44,10 +76,10 @@ fun registerRequest(registerRequest: String) {
 
 fun main(): Unit = runServiceListener(
     mapOf(
-        "registerRequest" to ::registerRequest,
-        "loginRequest" to ::loginRequest,
-        "jwtValidationRequest" to ::receiveJwtToken,
-        "jwtRevokeRequest" to ::revokeJwtToken
+        "auth:request:Register" to ::registerRequest,
+        "auth:request:Login" to ::loginRequest,
+        "auth:request:JwtValidation" to ::receiveJwtToken,
+        "auth:request:JwtRevoke" to ::revokeJwtToken
     ),
     ::afterStartup
 )

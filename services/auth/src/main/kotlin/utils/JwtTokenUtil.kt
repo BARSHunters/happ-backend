@@ -2,8 +2,8 @@ package utils
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import java.util.*
 import io.github.cdimascio.dotenv.dotenv
+import java.util.*
 
 object JwtTokenUtil {
     private val dotenv = dotenv()

@@ -1,6 +1,7 @@
 package controller
 
 import io.mockk.*
+import keydb.sendEvent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.Gender
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import service.UserService
 import java.time.LocalDate
-import keydb.sendEvent
+import java.util.*
 
 class AuthControllerTest {
 
@@ -37,7 +38,7 @@ class AuthControllerTest {
             75.0f,
             WeightDesire.LOSS
         )
-        val requestWrapper = RequestWrapper(1, request)
+        val requestWrapper = RequestWrapper(UUID.fromString("1"), request)
         val requestJson = Json.encodeToString(requestWrapper)
         every { userService.register("newUser", "StrongPass123") } returns "mocked-token"
         authController.handleRegister(requestJson)
@@ -50,7 +51,7 @@ class AuthControllerTest {
     @Test
     fun `handleLogin should return token when credentials are valid`() {
         val request = LoginDto("newUser", "StrongPass123")
-        val requestWrapper = RequestWrapper(2, request)
+        val requestWrapper = RequestWrapper(UUID.fromString("2"), request)
         val requestJson = Json.encodeToString(requestWrapper)
         every { userService.login("newUser", "StrongPass123") } returns "mocked-token"
         authController.handleLogin(requestJson)
@@ -61,7 +62,7 @@ class AuthControllerTest {
     @Test
     fun `handleLogin should return error when credentials are invalid`() {
         val request = LoginDto("newUser", "WrongPassword")
-        val requestWrapper = RequestWrapper(3, request)
+        val requestWrapper = RequestWrapper(UUID.fromString("3"), request)
         val requestJson = Json.encodeToString(requestWrapper)
         every { userService.login("newUser", "WrongPassword") } returns null
         authController.handleLogin(requestJson)

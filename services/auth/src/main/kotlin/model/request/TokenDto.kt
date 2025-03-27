@@ -5,8 +5,8 @@ import utils.UUIDSerializer
 import java.util.*
 
 @Serializable
-data class RequestWrapper<T>(
+data class TokenDto(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val dto: T
+    val token: String,
 )

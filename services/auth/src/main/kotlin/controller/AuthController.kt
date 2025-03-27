@@ -12,6 +12,7 @@ import model.response.*
 import service.UserService
 import validation.AuthValidator
 import validation.UserDataValidator
+import java.util.*
 
 class AuthController(private val userService: UserService) {
     fun handleRegister(requestBody: String) {
@@ -22,7 +23,7 @@ class AuthController(private val userService: UserService) {
             e.printStackTrace()
             val errorMessage = "Invalid JSON format"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendError(-1, error)
+            sendError(UUID.fromString("-1"), error)
             return
         }
         val registerDto = registerRequest.dto
@@ -37,7 +38,7 @@ class AuthController(private val userService: UserService) {
                 val token = userService.register(registerDto.username, registerDto.password)
                 if (token != null) {
                     val response = LoginResponse(jwt = token)
-                    sendResponse("registerResponse", registerRequest.id, response)
+                    sendResponse("auth:response:Register", registerRequest.id, response)
                     val userDataRequest = UserDataDto(
                         username = registerDto.username,
                         name = registerDto.name,
@@ -47,7 +48,7 @@ class AuthController(private val userService: UserService) {
                         weightKg = registerDto.weightKg,
                         weightDesire = registerDto.weightDesire
                     )
-                    sendRequest("createUserDataRequest", userDataRequest)
+                    sendRequest("user_data:request:CreateUserData", userDataRequest)
                 } else {
                     val errorMessage = "User with this username already exists"
                     val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
@@ -74,7 +75,7 @@ class AuthController(private val userService: UserService) {
             e.printStackTrace()
             val errorMessage = "Invalid JSON format"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendError(-1, error)
+            sendError(UUID.fromString("-1"), error)
             return
         }
         val loginDto = loginRequest.dto
@@ -84,7 +85,7 @@ class AuthController(private val userService: UserService) {
                 val token = userService.login(loginDto.username, loginDto.password)
                 if (token != null) {
                     val response = LoginResponse(jwt = token)
-                    sendResponse("loginResponse", loginRequest.id, response)
+                    sendResponse("auth:response:Login", loginRequest.id, response)
 
                 } else {
                     val errorMessage = "User unauthorized!"
@@ -110,13 +111,13 @@ class AuthController(private val userService: UserService) {
         sendEvent(channel, requestJson)
     }
 
-    private fun sendResponse(channel: String, id: Int, dto: LoginResponse) {
+    private fun sendResponse(channel: String, id: UUID, dto: LoginResponse) {
         val response = ResponseWrapper(id, dto)
         val responseJson = Json.encodeToString(response)
         sendEvent(channel, responseJson)
     }
 
-    private fun sendError(id: Int, dto: ErrorDto) {
+    private fun sendError(id: UUID, dto: ErrorDto) {
         val response = ErrorWrapper(id, dto)
         val responseJson = Json.encodeToString(response)
         sendEvent("error", responseJson)

@@ -1,12 +1,12 @@
-package model.request
+package model.response
 
 import kotlinx.serialization.Serializable
 import utils.UUIDSerializer
 import java.util.*
 
 @Serializable
-data class RequestWrapper<T>(
+data class MessageResponse(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val dto: T
+    val message: String
 )

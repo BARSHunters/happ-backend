@@ -1,10 +1,16 @@
 package org.example.service
 
+import org.example.DB
 import org.example.Database
 import org.example.dto.*
 import java.util.*
 
 object HistoryService {
+
+    init {
+        Database.initService("V0_0_1__INIT_PG_HISTORY.sql", DB.PG)
+    }
+
     fun getHistoryForUser(login: String, days: Int): List<Pair<String, HistoryRow>> {
         val connection = Database.getPGConnection()
 

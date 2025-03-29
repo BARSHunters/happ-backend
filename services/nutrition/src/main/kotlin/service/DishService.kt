@@ -1,5 +1,6 @@
 package org.example.service
 
+import org.example.DB
 import org.example.Database
 import org.example.dto.DishDTO
 
@@ -27,6 +28,11 @@ enum class DishType(val defaultMinLimit: Int, val defaultMaxLimit: Int) {
 }
 
 object DishService {
+
+    init {
+        Database.initService("V0_0_3__INIT_CH.sql", DB.CH)
+    }
+
     fun getDishesByType(
         type: DishType,
         offset: Int = 0,
@@ -71,19 +77,19 @@ object DishService {
         statement.setLong(1, dishId)
 
         val result = statement.executeQuery().use { rs ->
-                if (rs.next())
-                    DishDTO(
-                        rs.getString("name"),
-                        100U,
-                        rs.getInt("tdee").toDouble(),
-                        rs.getInt("protein").toDouble(),
-                        rs.getInt("fat").toDouble(),
-                        rs.getInt("carbs").toDouble(),
-                        rs.getLong("id"),
-                        rs.getLong("photoId"),
-                        rs.getLong("recipeId")
-                    )
-                else throw Exception("No dish with such ID")
+            if (rs.next())
+                DishDTO(
+                    rs.getString("name"),
+                    100U,
+                    rs.getInt("tdee").toDouble(),
+                    rs.getInt("protein").toDouble(),
+                    rs.getInt("fat").toDouble(),
+                    rs.getInt("carbs").toDouble(),
+                    rs.getLong("id"),
+                    rs.getLong("photoId"),
+                    rs.getLong("recipeId")
+                )
+            else throw Exception("No dish with such ID")
         }
 
         statement.close()
@@ -91,5 +97,3 @@ object DishService {
         return result
     }
 }
-
-// TODO реализовать в сервисах что-то +- около миграций на файлах из ресурсов?

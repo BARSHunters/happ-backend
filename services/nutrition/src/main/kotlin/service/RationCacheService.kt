@@ -1,5 +1,6 @@
 package org.example.service
 
+import org.example.DB
 import org.example.Database
 import org.example.decider.Wish
 import org.example.dto.MealType
@@ -9,6 +10,11 @@ import org.example.dto.UpdateRationRequestDTO
 import java.util.*
 
 object RationCacheService {
+
+    init {
+        Database.initService("V0_0_2__INIT_PG_CACHE.sql", DB.PG)
+    }
+
     fun initQuery(request: RationRequestDTO) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login) VALUES (?,?)")

@@ -8,8 +8,13 @@ object HistoryService {
     fun getHistoryForUser(login: String, days: Int): List<Pair<String, HistoryRow>> {
         val connection = Database.getPGConnection()
 
+        // Под-запрос с GROUP BY нужен, так как может возникать несколько записей для одного дня (из-за обновления рациона).
+        // Где больше id - там и правда.
         val statement = connection.prepareStatement(
-            "SELECT * FROM history WHERE login = ? AND date >= NOW() - INTERVAL ? DAY"
+            """SELECT date, total_tdee, total_protein, total_fat, total_carbs FROM history
+                | WHERE login = ? AND date >= NOW() - INTERVAL ? DAY
+                |    AND id in ( SELECT max(id) FROM history GROUP BY date )
+                | ORDER BY date;""".trimMargin(),
         )
         statement.setString(1, login)
         statement.setInt(2, days)

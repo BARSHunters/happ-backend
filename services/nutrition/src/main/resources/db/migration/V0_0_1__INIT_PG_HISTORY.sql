@@ -1,13 +1,6 @@
-create UNLOGGED table IF NOT EXISTS nutrition.cache_ration
-(
-    query_id UUID,
-    login    VARCHAR(255),
-    wish     TEXT
-);
-
-
 create table IF NOT EXISTS nutrition.history
 (
+    id               bigserial primary key,
     login            VARCHAR(255) not null,
     date             date         not null,
     breakfast        bigint,

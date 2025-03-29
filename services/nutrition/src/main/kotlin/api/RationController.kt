@@ -67,7 +67,11 @@ object RationController {
             return
         }
 
-        val dishSet = Decider.decide(user, cache.wish ?: Wish.KEEP)
+        val dishSet: DailyDishSetDTO = if (cache.type != null) {
+            Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type)
+        } else {
+            Decider.decide(user, cache.wish ?: Wish.KEEP)
+        }
 
         RationCacheService.clearQuery(request.queryId)
         HistoryService.addHistory(cache.login, dishSet)
@@ -76,6 +80,14 @@ object RationController {
 
 
     fun updateTodayRation(msg: String) {
-
+        val request: UpdateRationRequestDTO = try {
+            Json.decodeFromString(msg)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            sendEvent("error", "Invalid JSON format")
+            return
+        }
+        RationCacheService.initUpdateQuery(request)
+        sendEvent("request_nutrition_wish", Json.encodeToString(RationRequestDTO(request.queryId, request.login)))
     }
 }

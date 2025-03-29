@@ -2,9 +2,11 @@ package org.example.decider
 
 import org.example.dto.DailyDishSetDTO
 import org.example.dto.DishDTO
+import org.example.dto.MealType
 import org.example.model.User
 import org.example.service.DishService
 import org.example.service.DishType
+import org.example.service.HistoryService
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -44,17 +46,29 @@ object Decider {
             type = DishType.BREAKFAST,
             offset = Random.nextInt(0, TOTAL_BREAKFAST - DishType.BREAKFAST.defaultMaxLimit),
             limit = Random.nextInt(DishType.BREAKFAST.defaultMinLimit, DishType.BREAKFAST.defaultMaxLimit)
-        ).map { if (Random.nextDouble() < 0.3 && anyDishes.isNotEmpty()) { anyDishes.random() } else it }.toList()
+        ).map {
+            if (Random.nextDouble() < 0.3 && anyDishes.isNotEmpty()) {
+                anyDishes.random()
+            } else it
+        }.toList()
         val lunches = DishService.getDishesByType(
             type = DishType.LUNCH,
             offset = Random.nextInt(0, TOTAL_LUNCH - DishType.LUNCH.defaultMaxLimit),
             limit = Random.nextInt(DishType.LUNCH.defaultMinLimit, DishType.LUNCH.defaultMaxLimit)
-        ).map { if (Random.nextDouble() < 0.3 && lunchOrDinner.isNotEmpty()) { lunchOrDinner.random() } else it }.toList()
+        ).map {
+            if (Random.nextDouble() < 0.3 && lunchOrDinner.isNotEmpty()) {
+                lunchOrDinner.random()
+            } else it
+        }.toList()
         val dinners = DishService.getDishesByType(
             type = DishType.DINNER,
             offset = Random.nextInt(0, TOTAL_DINNER - DishType.DINNER.defaultMaxLimit),
             limit = Random.nextInt(DishType.DINNER.defaultMinLimit, DishType.DINNER.defaultMaxLimit)
-        ).map { if (Random.nextDouble() < 0.3 && lunchOrDinner.isNotEmpty()) { lunchOrDinner.random() } else it }.toList()
+        ).map {
+            if (Random.nextDouble() < 0.3 && lunchOrDinner.isNotEmpty()) {
+                lunchOrDinner.random()
+            } else it
+        }.toList()
 
         var bestSet: Triple<DishDTO, DishDTO, DishDTO>? = null
         var minError = Double.MAX_VALUE
@@ -62,29 +76,13 @@ object Decider {
         for (breakfast in breakfasts) {
             for (lunch in lunches) {
                 for (dinner in dinners) {
-                    val combo = listOf(breakfast, lunch, dinner)
+                    val combo = Triple(breakfast, lunch, dinner)
+                    val scalingFactor = targetTDEE / combo.toList().sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
+                    val adjustedCombo = adjustCombo(combo, scalingFactor)
 
-                    val scalingFactor = targetTDEE / combo.sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
-                    val breakfastWeight = (breakfast.weight.toDouble() * scalingFactor).coerceAtLeast(100.0)
-                    val lunchWeight = (lunch.weight.toDouble() * scalingFactor).coerceAtLeast(100.0)
-                    val dinnerWeight = (dinner.weight.toDouble() * scalingFactor).coerceAtLeast(100.0)
-
-                    val adjustedBreakfast = breakfast.adjustWeight(breakfastWeight)
-                    val adjustedLunch = lunch.adjustWeight(lunchWeight)
-                    val adjustedDinner = dinner.adjustWeight(dinnerWeight)
-
-                    val totalProtein = combo.sumOf { it.protein }
-                    val totalFat = combo.sumOf { it.fat }
-                    val totalCarbs = combo.sumOf { it.carbs }
-                    val totalTDEE = combo.sumOf { it.tdee }
-
-                    val error = abs(totalProtein - targetProtein) +
-                            abs(totalFat - targetFat) +
-                            abs(totalCarbs - targetCarbs) +
-                            abs(totalTDEE - targetTDEE)
-
+                    val error = calculateError(adjustedCombo, targetTDEE, targetProtein, targetFat, targetCarbs)
                     if (error < minError) {
-                        bestSet = Triple(adjustedBreakfast, adjustedLunch, adjustedDinner)
+                        bestSet = adjustedCombo
                         minError = error
                     }
                 }
@@ -104,5 +102,115 @@ object Decider {
             fat = this.fat * factor,
             carbs = this.carbs * factor
         )
+    }
+
+    private fun adjustCombo(combo: Triple<DishDTO, DishDTO, DishDTO>, scalingFactor: Double): Triple<DishDTO, DishDTO, DishDTO> {
+        val breakfast = combo.first
+        val lunch = combo.second
+        val dinner = combo.third
+
+        val breakfastWeight = (breakfast.weight.toDouble() * scalingFactor).coerceAtLeast(100.0)
+        val lunchWeight = (lunch.weight.toDouble() * scalingFactor).coerceAtLeast(100.0)
+        val dinnerWeight = (dinner.weight.toDouble() * scalingFactor).coerceAtLeast(100.0)
+
+        val adjustedBreakfast = breakfast.adjustWeight(breakfastWeight)
+        val adjustedLunch = lunch.adjustWeight(lunchWeight)
+        val adjustedDinner = dinner.adjustWeight(dinnerWeight)
+
+        return Triple(adjustedBreakfast, adjustedLunch, adjustedDinner)
+    }
+
+    private fun calculateError(
+        adjustCombo: Triple<DishDTO, DishDTO, DishDTO>,
+        targetTDEE: Double,
+        targetProtein: Double,
+        targetFat: Double,
+        targetCarbs: Double,
+    ): Double {
+        val adjustedComboList = adjustCombo.toList()
+
+        val error = abs(adjustedComboList.sumOf { it.protein } - targetProtein) +
+                abs(adjustedComboList.sumOf { it.fat } - targetFat) +
+                abs(adjustedComboList.sumOf { it.carbs } - targetCarbs) +
+                abs(adjustedComboList.sumOf { it.tdee } - targetTDEE)
+
+        return error
+    }
+
+    fun swap(user: User, wish: Wish, mealType: MealType): DailyDishSetDTO {
+        val baseTDEE = user.calculateTDEE()
+
+        val targetTDEE = baseTDEE * wish.tdeeIndex
+        val targetProtein = targetTDEE * wish.proteinIndex / 4
+        val targetFat = targetTDEE * wish.fatIndex / 9
+        val targetCarbs = targetTDEE * wish.carbsIndex / 4
+
+        val other = DishService.getDishesByType(
+            type = DishType.ANY,
+            offset = Random.nextInt(0, TOTAL_ANY - DishType.ANY.defaultMaxLimit),
+            limit = Random.nextInt(DishType.ANY.defaultMinLimit, DishType.ANY.defaultMaxLimit)
+        ).toMutableList()
+        if (mealType == MealType.LUNCH || mealType == MealType.DINNER) {
+            other += DishService.getDishesByType(
+                type = DishType.LUNCH_OR_DINNER,
+                offset = Random.nextInt(0, TOTAL_LD - DishType.LUNCH_OR_DINNER.defaultMaxLimit),
+                limit = Random.nextInt(
+                    DishType.LUNCH_OR_DINNER.defaultMinLimit,
+                    DishType.LUNCH_OR_DINNER.defaultMaxLimit
+                )
+            )
+        }
+
+        val meals = DishService.getDishesByType(
+            type = DishType.valueOf(mealType.name),
+            offset = Random.nextInt(
+                0,
+                DishType.valueOf(mealType.name).getTypeCount() - DishType.valueOf(mealType.name).defaultMaxLimit
+            ),
+            limit = Random.nextInt(
+                DishType.valueOf(mealType.name).defaultMinLimit,
+                DishType.valueOf(mealType.name).defaultMaxLimit
+            )
+        ).map {
+            if (Random.nextDouble() < 0.3 && other.isNotEmpty()) {
+                other.random()
+            } else it
+        }.toList()
+
+        val historyRow = HistoryService.getTodayHistoryForUser(user.login)
+
+        var breakfast = DishService.getDishById(historyRow.breakfast)
+        var lunch = DishService.getDishById(historyRow.lunch)
+        var dinner = DishService.getDishById(historyRow.dinner)
+
+        var bestSet: Triple<DishDTO, DishDTO, DishDTO>? = null
+        var minError = Double.MAX_VALUE
+
+        for (meal in meals) {
+            when (mealType) {
+                MealType.BREAKFAST -> {
+                    breakfast = meal
+                }
+                MealType.LUNCH -> {
+                    lunch = meal
+                }
+                else -> {
+                    dinner = meal
+                }
+            }
+
+            val combo = Triple(breakfast, lunch, dinner)
+            val scalingFactor = targetTDEE / combo.toList().sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
+            val adjustedCombo = adjustCombo(combo, scalingFactor)
+
+            val error = calculateError(adjustedCombo, targetTDEE, targetProtein, targetFat, targetCarbs)
+            if (error < minError) {
+                bestSet = adjustedCombo
+                minError = error
+            }
+        }
+
+        return bestSet?.let { DailyDishSetDTO(it.first, it.second, it.third) }
+            ?: throw IllegalStateException("Не удалось подобрать блюда")
     }
 }

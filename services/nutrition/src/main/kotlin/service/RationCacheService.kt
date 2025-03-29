@@ -1,8 +1,11 @@
 package org.example.service
 
 import org.example.Database
+import org.example.decider.Wish
+import org.example.dto.MealType
 import org.example.dto.RationCacheDTO
 import org.example.dto.RationRequestDTO
+import org.example.dto.UpdateRationRequestDTO
 import java.util.*
 
 object RationCacheService {
@@ -11,6 +14,17 @@ object RationCacheService {
         val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login) VALUES (?,?)")
         statement.setObject(1, request.queryId)
         statement.setString(2, request.login)
+        statement.executeUpdate()
+        statement.close()
+        connection.close()
+    }
+
+    fun initUpdateQuery(request: UpdateRationRequestDTO) {
+        val connection = Database.getPGConnection()
+        val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
+        statement.setObject(1, request.queryId)
+        statement.setString(2, request.login)
+        statement.setString(3, request.type.name)
         statement.executeUpdate()
         statement.close()
         connection.close()
@@ -38,6 +52,7 @@ object RationCacheService {
                         rs.getObject("query_id", UUID::class.java),
                         rs.getString("login"),
                         rs.getObject("wish", Wish::class.java),
+                        rs.getObject("meal_type", MealType::class.java),
                     )
                 } else {
                     throw Exception("No rows with query_id=$queryId")

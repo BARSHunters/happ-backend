@@ -18,6 +18,7 @@ fun afterStartup() {
     sendEvent("hello_placeholder", "Hello world!").also { println("got a message") }
 }
 
+// TODO Dokka
 fun main(): Unit = runServiceListener(
     mapOf(
         "hello_placeholder" to ::receiveMessage,
@@ -26,6 +27,9 @@ fun main(): Unit = runServiceListener(
         "nutrition:request_today_ration" to RationController::requestTodayRation, // входная точка
         "response_nutrition_wish" to RationController::afterFetchFromWeightHistoryService, // продолжение обработки
         "sendUserData" to RationController::afterFetchFromUserDataService, // продолжение обработки
+
+        // Обновление рациона по 1 блюду
+        "nutrition:update_today_ration" to RationController::updateTodayRation,
 
         // История рационов
         "request_nutrition_data" to HistoryController::getRationHistory,

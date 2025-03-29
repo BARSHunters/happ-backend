@@ -1,8 +1,8 @@
 package org.example.service
 
 import org.example.Database
-import org.example.dto.DailyDishSetDTO
-import org.example.dto.HistoryRow
+import org.example.dto.*
+import java.util.*
 
 object HistoryService {
     fun getHistoryForUser(login: String, days: Int): List<Pair<String, HistoryRow>> {
@@ -31,6 +31,41 @@ object HistoryService {
                 }
             }
         }
+        statement.close()
+        connection.close()
+        return result
+    }
+
+    fun getTodayHistoryForUser(login: String): HistoryFullDTO {
+        val connection = Database.getPGConnection()
+        val statement = connection.prepareStatement(
+            "SELECT * FROM history WHERE login = ? AND date = now() ORDER BY id DESC LIMIT 1"
+        )
+        statement.setString(1, login)
+
+        val result = statement.executeQuery().use { rs ->
+            {
+                if (rs.next()) {
+                    HistoryFullDTO(
+                        rs.getString("login"),
+                        rs.getObject("date", Date::class.java),
+                        rs.getLong("breakfast"),
+                        rs.getInt("breakfast_weight"),
+                        rs.getLong("lunch"),
+                        rs.getInt("lunch_weight"),
+                        rs.getLong("dinner"),
+                        rs.getInt("dinner_weight"),
+                        rs.getDouble("total_tdee"),
+                        rs.getDouble("total_protein"),
+                        rs.getDouble("total_fat"),
+                        rs.getDouble("total_carbs"),
+                    )
+                } else {
+                    throw Exception("No history found for today")
+                }
+            }
+        }()
+
         statement.close()
         connection.close()
         return result

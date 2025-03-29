@@ -48,9 +48,19 @@ data class RationCacheDTO(
     val queryId: UUID,
     val login: String,
     val wish: Wish?,
+    val type: MealType?,
 )
 
 data class RationResponseDTO(
     val queryId: UUID,
     val dishSetDTO: DailyDishSetDTO
+)
+
+
+enum class MealType { BREAKFAST, LUNCH, DINNER; }
+
+data class UpdateRationRequestDTO(
+    val queryId: UUID,
+    val login: String,
+    val type: MealType,
 )

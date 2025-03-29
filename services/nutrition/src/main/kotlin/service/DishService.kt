@@ -63,6 +63,33 @@ object DishService {
         connection.close()
         return result
     }
+
+    fun getDishById(dishId: Long): DishDTO {
+        val connection = Database.getCHConnection()
+
+        val statement = connection.prepareStatement("SELECT * FROM dish WHERE id = ? LIMIT 1;")
+        statement.setLong(1, dishId)
+
+        val result = statement.executeQuery().use { rs ->
+                if (rs.next())
+                    DishDTO(
+                        rs.getString("name"),
+                        100U,
+                        rs.getInt("tdee").toDouble(),
+                        rs.getInt("protein").toDouble(),
+                        rs.getInt("fat").toDouble(),
+                        rs.getInt("carbs").toDouble(),
+                        rs.getLong("id"),
+                        rs.getLong("photoId"),
+                        rs.getLong("recipeId")
+                    )
+                else throw Exception("No dish with such ID")
+        }
+
+        statement.close()
+        connection.close()
+        return result
+    }
 }
 
 // TODO реализовать в сервисах что-то +- около миграций на файлах из ресурсов?

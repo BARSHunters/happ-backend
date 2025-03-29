@@ -1,10 +1,11 @@
 create TYPE Meal_Type AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER');
-create TYPE Wish AS ENUM ('KEEP', 'GAIN', 'LOSS');
+create TYPE Wish AS ENUM ('KEEP', 'GAIN', 'LOSS', 'REMAIN');
 
 create UNLOGGED table IF NOT EXISTS nutrition.cache_ration
 (
-    query_id  UUID primary key,
-    login     VARCHAR(255) not null,
-    wish      Wish,
-    meal_type Meal_Type
+    query_id       UUID primary key,
+    login          VARCHAR(255) not null,
+    wish           Wish,
+    meal_type      Meal_Type,
+    activity_index float
 );

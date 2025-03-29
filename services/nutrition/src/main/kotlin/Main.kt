@@ -30,6 +30,7 @@ fun main(): Unit = runServiceListener(
         // Генерация рациона
         "nutrition:request:today_ration" to RationController::requestTodayRation, // входная точка
         "weight_history:response:WeightControlWish" to RationController::afterFetchFromWeightHistoryService, // продолжение обработки
+        "activity:response:ActivityIndex" to RationController::afterFetchFromActivityService, // продолжение обработки
         "user_data:response:UserData" to RationController::afterFetchFromUserDataService, // продолжение обработки
 
         // Обновление рациона по 1 блюду

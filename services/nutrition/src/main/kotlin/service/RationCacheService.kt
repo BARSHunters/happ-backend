@@ -65,6 +65,22 @@ object RationCacheService {
         connection.close()
     }
 
+    /**
+     * Запомнить индекс активности пользователя
+     *
+     * @param queryId UUID запроса кеш которого надо обновить
+     * @param activityIndex индекс, который надо добавить
+     */
+    fun saveActivity(queryId: UUID, activityIndex: Float) {
+        val connection = Database.getPGConnection()
+        val statement = connection.prepareStatement("UPDATE cache_ration SET activity_index = ? WHERE query_id = ?")
+        statement.setFloat(1, activityIndex)
+        statement.setObject(2, queryId)
+        statement.executeUpdate()
+        statement.close()
+        connection.close()
+    }
+
 
     /**
      * Получить всю строку кеша
@@ -84,6 +100,7 @@ object RationCacheService {
                         rs.getString("login"),
                         rs.getObject("wish", Wish::class.java),
                         rs.getObject("meal_type", MealType::class.java),
+                        rs.getFloat("activityIndex"),
                     )
                 } else {
                     throw Exception("No rows with query_id=$queryId")

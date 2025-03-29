@@ -12,38 +12,38 @@ import java.time.Period
  *
  * @param calculator конструктор нужного калькулятора
  */
-enum class TDEECalculatorType(val calculator: (user: UserDTO) -> Calculator) {
-    MIFFLIN({ user ->
+enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Float) -> Calculator) {
+    MIFFLIN({ user, activityIndex ->
         MifflinStJeor(
             user.weightKg.toUInt(),
             user.heightCm.toUInt(),
             Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
             user.gender,
-            user.activityIndex
+            activityIndex
         )
     }),
-    HARRIS({ user ->
+    HARRIS({ user, activityIndex ->
         HarrisBenedict(
             user.weightKg.toUInt(),
             user.heightCm.toUInt(),
             Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
             user.gender,
-            user.activityIndex
+            activityIndex
         )
     }),
-    KATCH({ user ->
+    KATCH({ user, activityIndex ->
         KatchMcArdle(
             user.weightKg.toUInt(),
-            user.activityIndex,
+            activityIndex,
             user.bodyFatPercent ?: throw NullPointerException()
         )
     }),
-    FAO({ user ->
+    FAO({ user, activityIndex ->
         FAOWHO(
             user.weightKg.toUInt(),
             Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
             user.gender,
-            user.activityIndex
+            activityIndex
         )
     })
 }

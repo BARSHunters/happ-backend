@@ -24,6 +24,14 @@ data class WishResponseDTO(
 )
 
 /**
+ * Представление ответа от ActivityService на запрос индекса активности пользователя
+ */
+data class ActivityResponseDTO(
+    val id: UUID,
+    val activityIndex: Float
+)
+
+/**
  * Представление запроса на данные пользователя к UserDataService
  */
 data class UserDataRequestDTO(
@@ -51,9 +59,6 @@ data class UserDTO(
     val weightKg: Float,
     val weightDesire: Wish,
 
-    // точно нужно
-    val activityIndex: Float,
-
     // Для расчёта калорий по одной из формул (Кетч-МакАрдла)
     val bodyFatPercent: Double?,
     // поля для более точного расчёта процента жира
@@ -76,6 +81,7 @@ data class RationCacheDTO(
     val login: String,
     val wish: Wish?,
     val type: MealType?,
+    val activityIndex: Float,
 )
 
 /**

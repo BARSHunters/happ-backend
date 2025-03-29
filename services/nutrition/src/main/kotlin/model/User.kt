@@ -42,14 +42,14 @@ class User(
         return bodyFatCalculator.calculate()
     }
 
-    constructor(dto: UserDTO) : this(
+    constructor(dto: UserDTO, activityIndex: Float) : this(
         dto.username,
         dto.weightKg.toUInt(),
         dto.heightCm.toUInt(),
         Period.between(dto.birthDate, LocalDate.now()).years.toUInt(),
         dto.gender,
-        dto.activityIndex,
-        dto.preferredTDEECalculator?.calculator?.invoke(dto) ?: TDEECalculatorType.FAO.calculator(dto),
+        activityIndex,
+        dto.preferredTDEECalculator?.calculator?.invoke(dto, activityIndex) ?: TDEECalculatorType.FAO.calculator(dto, activityIndex),
         dto.preferredBodyFatCalculator?.calculator?.invoke(dto) ?: BodyFatCalculatorType.BMI.calculator(dto)
     )
 }

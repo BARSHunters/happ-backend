@@ -21,7 +21,8 @@ object RationController {
      * Сохранит в кэше (см. [RationCacheService]) UUID запроса и login пользователя.
      *
      * После получения запроса обработает входной json и пойдет за нужной информацией в другие сервисы.
-     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromWeightHistoryService] и [afterFetchFromUserDataService]
+     * Процесс исполнения (генерации рациона) продолжится в
+     * [afterFetchFromWeightHistoryService], [afterFetchFromActivityService] и [afterFetchFromUserDataService]
      *
      * @param msg Ожидается json соответсвующий [RationRequestDTO]
      * @return [Unit], но отправит запрос на получение [пожеланий пользователя][Wish] насчёт веса.
@@ -43,7 +44,8 @@ object RationController {
      *
      * Запишет полученное [пожелание пользователя о весе][Wish] в кэше по тому же UUID запроса (см. [RationCacheService]).
      *
-     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromUserDataService]
+     * Процесс исполнения (генерации рациона) продолжится в
+     * [afterFetchFromActivityService] и [afterFetchFromUserDataService]
      *
      * @param msg Ожидается json соответсвующий [WishResponseDTO]
      * @return [Unit], но отправит запрос на получение [данных пользователя][UserDTO].
@@ -68,6 +70,39 @@ object RationController {
 
         RationCacheService.saveWish(request.id, request.wish)
 
+        sendEvent("activity:request:ActivityIndex", Json.encodeToString(RationRequestDTO(request.id, cache.login)))
+    }
+
+    /**
+     * Промежуточный этап генерации рациона.
+     *
+     * Запишет полученный индекс активности в кэше по тому же UUID запроса (см. [RationCacheService]).
+     *
+     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromUserDataService]
+     *
+     * @param msg Ожидается json соответсвующий [WishResponseDTO]
+     * @return [Unit], но отправит запрос на получение [данных пользователя][UserDTO].
+     */
+    fun afterFetchFromActivityService(msg: String) {
+        val request: ActivityResponseDTO = try {
+            Json.decodeFromString(msg)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            sendEvent("error", "Invalid JSON format")
+            return
+        }
+
+        val cache: RationCacheDTO
+        try {
+            cache = RationCacheService.getByQueryId(request.id)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+            return
+        }
+
+        RationCacheService.saveActivity(request.id, request.activityIndex)
+
         sendEvent("user_data:request:UserData", Json.encodeToString(UserDataRequestDTO(request.id, cache.login)))
     }
 
@@ -77,6 +112,7 @@ object RationController {
      * По UUID запроса получит из кеша (см. [RationCacheService]):
      *  - login пользователя
      *  - [Его пожелание о весе][Wish].
+     *  - Его индекс активности
      *  - Если это обновление [по одному приему пищи][MealType], то что это за приём пищи. (см. [updateTodayRation])
      *
      * Для генерации вызовет [Decider.decide] (или [Decider.swap] если это обновление по одному приему пищи - см. [updateTodayRation])
@@ -93,8 +129,6 @@ object RationController {
             return
         }
 
-        val user = User(request.dto)
-
         val cache: RationCacheDTO
         try {
             cache = RationCacheService.getByQueryId(request.id)
@@ -103,6 +137,8 @@ object RationController {
             sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
             return
         }
+
+        val user = User(request.dto, cache.activityIndex)
 
         val dishSet: DailyDishSetDTO = if (cache.type != null) {
             Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type)
@@ -121,7 +157,8 @@ object RationController {
      * Сохранит в кэше (см. [RationCacheService]) UUID запроса и login пользователя.
      *
      * После получения запроса обработает входной json и пойдет за нужной информацией в другие сервисы.
-     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromWeightHistoryService] и [afterFetchFromUserDataService]
+     * Процесс исполнения (генерации рациона) продолжится в
+     * [afterFetchFromWeightHistoryService], [afterFetchFromActivityService] и [afterFetchFromUserDataService]
      *
      * @param msg Ожидается json соответсвующий [UpdateRationRequestDTO]
      * @return [Unit], но отправит запрос на получение [пожеланий пользователя][Wish] насчёт веса.

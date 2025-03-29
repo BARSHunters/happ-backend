@@ -5,6 +5,13 @@ import java.sql.Connection
 
 enum class DB {PG, CH}
 
+/**
+ * Объект для работы с базами данных
+ *
+ * Хранит pool-ы подключений.
+ *
+ * Умеет запускать указанные sql скрипты из ресурсов (попытка сделать что-то похожее на "миграции в ручную")
+ */
 object Database {
     private var chDataSource: HikariDataSource = HikariDataSource()
     private var pgDataSource: HikariDataSource = HikariDataSource()
@@ -26,6 +33,9 @@ object Database {
     fun getCHConnection(): Connection = chDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
     fun getPGConnection(): Connection = pgDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
 
+    /**
+     * Запускает указанный sql скрипт из ресурсов приложения
+     */
     fun initService(migrationFileName: String, db: DB) {
         // Загружаем файл миграции этого сервиса
         val sqlScript = this::class.java.classLoader.getResourceAsStream(migrationFileName)

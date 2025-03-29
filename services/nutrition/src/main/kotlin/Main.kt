@@ -1,12 +1,15 @@
 package org.example
 
 import keydb.runServiceListener
-import keydb.sendEvent
 import org.example.api.HistoryController
 import org.example.api.RationController
 
-fun receiveMessage(msg: String) = println(msg)
 
+/**
+ * Инициация приложения
+ *
+ * Вызывает инициализацию подключений к БД
+ */
 fun afterStartup() {
     try {
         Database
@@ -15,14 +18,15 @@ fun afterStartup() {
         System.err.println("Exception thrown while trying to connect to the database")
         System.err.println(e.message)
     }
-    sendEvent("hello_placeholder", "Hello world!").also { println("got a message") }
 }
 
-// TODO Dokka
+/**
+ * Точка входа.
+ *
+ * Монтирует каналы KeyDB к функциям обработчикам.
+ */
 fun main(): Unit = runServiceListener(
     mapOf(
-        "hello_placeholder" to ::receiveMessage,
-
         // Генерация рациона
         "nutrition:request_today_ration" to RationController::requestTodayRation, // входная точка
         "response_nutrition_wish" to RationController::afterFetchFromWeightHistoryService, // продолжение обработки

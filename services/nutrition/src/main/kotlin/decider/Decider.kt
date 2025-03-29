@@ -10,19 +10,50 @@ import org.example.service.HistoryService
 import kotlin.math.abs
 import kotlin.random.Random
 
+/**
+ * Пожелание пользователя об изменении/сохранении веса.
+ *
+ * Влияет на общее количество калорий и доли БЖУ при расчёте весов порций.
+ * Доли БЖУ не финальные, в сумме должны давать 1.
+ * Конкретное значение enum-а поучается из сервиса WeightHistory.
+ *
+ * @property tdeeIndex множитель калорий
+ * @property proteinIndex множитель количества белков
+ * @property fatIndex множитель количества жиров
+ * @property carbsIndex множитель количества углеводов
+ */
 enum class Wish(val tdeeIndex: Double, val proteinIndex: Double, val fatIndex: Double, val carbsIndex: Double) {
     KEEP(1.0, 0.3, 0.25, 0.45),
     GAIN(1.15, 0.3, 0.25, 0.45),
     LOSS(0.85, 0.35, 0.25, 0.4);
 }
 
+/**
+ * Singleton класс, содержащий методы генерации рациона.
+ *
+ * Класс нужен только для хранения неизменяемых свойств. В них - количество записей в таблице блюд (по типам).
+ * По-хорошему, реальное количество тоже не должно меняться.
+ * В остальном функции чистые.
+ */
 object Decider {
+    /** Количество блюд с типом ANY. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_ANY = DishType.ANY.getTypeCount()
+    /** Количество блюд и для обеда и для ужина. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_LD = DishType.LUNCH_OR_DINNER.getTypeCount()
+    /** Количество завтраков. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_BREAKFAST = DishType.BREAKFAST.getTypeCount()
+    /** Количество обедов. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_LUNCH = DishType.LUNCH.getTypeCount()
+    /** Количество ужинов. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_DINNER = DishType.DINNER.getTypeCount()
 
+
+    /**
+     * Генерирует набор из 3-х блюд.
+     *
+     * @param user Данные о пользователе, участвующие в расчёте. Также содержит свой [калькулятор][User.calculateTDEE]
+     * @param wish Пользовательское [пожелание][Wish] насчёт веса.
+     */
     fun decide(user: User, wish: Wish): DailyDishSetDTO {
         val baseTDEE = user.calculateTDEE()
 
@@ -93,6 +124,10 @@ object Decider {
             ?: throw IllegalStateException("Не удалось подобрать блюда")
     }
 
+    /**
+     * Рассчитывает параметры блюда с [новым весом][newWeight]
+     * @return Новый объект [DishDTO]
+     */
     private fun DishDTO.adjustWeight(newWeight: Double): DishDTO {
         val factor = newWeight / 100.0
         return this.copy(
@@ -104,6 +139,13 @@ object Decider {
         )
     }
 
+    /**
+     * Домножает веса блюд на указанный [scalingFactor]
+     *
+     * @param combo набор блюд для увеличения веса
+     * @param scalingFactor множитель
+     * @see [DishDTO.adjustWeight]
+     */
     private fun adjustCombo(combo: Triple<DishDTO, DishDTO, DishDTO>, scalingFactor: Double): Triple<DishDTO, DishDTO, DishDTO> {
         val breakfast = combo.first
         val lunch = combo.second
@@ -120,6 +162,12 @@ object Decider {
         return Triple(adjustedBreakfast, adjustedLunch, adjustedDinner)
     }
 
+    /**
+     * Считает разницу между переданным набором блюд и переданными целевыми значениями.
+     *
+     * Подразумевается передача параметров с учётом []пожелания пользователя][Wish] и набора блюд с уже определенным весом.
+     * @see adjustCombo
+     */
     private fun calculateError(
         adjustCombo: Triple<DishDTO, DishDTO, DishDTO>,
         targetTDEE: Double,
@@ -137,6 +185,15 @@ object Decider {
         return error
     }
 
+    /**
+     * Обновляет одно из блюд в наборе.
+     *
+     * Набор должен быть уже сгенерирован и доступен в истории ([HistoryService.getTodayHistoryForUser]).
+     *
+     * @param user Данные о пользователе, участвующие в расчёте. Также содержит свой [калькулятор][User.calculateTDEE]
+     * @param wish Пользовательское [пожелание][Wish] насчёт веса.
+     * @param mealType Приём пищи, блюдо на который нужно поменять.
+     */
     fun swap(user: User, wish: Wish, mealType: MealType): DailyDishSetDTO {
         val baseTDEE = user.calculateTDEE()
 

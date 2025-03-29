@@ -4,6 +4,13 @@ import org.example.dto.UserDTO
 import org.example.model.Gender
 import kotlin.math.ln
 
+/**
+ * Известные калькуляторы процента жира
+ *
+ * Позволяет создать объект калькулятора зная только нужный тип и [UserDTO]
+ *
+ * @param calculator конструктор нужного калькулятора
+ */
 enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) {
     YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.height.toDouble()) }),
     USNavy({ user ->
@@ -25,7 +32,7 @@ enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) 
     BMI({ user -> BMI(user.weight.toDouble(), user.height.toDouble(), user.age.toDouble(), user.gender) })
 }
 
-// YMCA (по талии)
+/** Калькулятор считающий по формуле YMCA (по обхвату талии) */
 class YMCA(
     private val waist: Double,
     private val height: Double
@@ -35,7 +42,7 @@ class YMCA(
     }
 }
 
-// US Navy (по талии, шее и бедрам)
+/** Калькулятор считающий по формуле US Navy (по обхвату талии, шеи и бедер) */
 class USNavy(
     private val gender: Gender,
     private val waist: Double,
@@ -53,7 +60,7 @@ class USNavy(
     }
 }
 
-// Джексон-Поллак (по кожным складкам)
+/** Калькулятор считающий по формуле Джексона-Поллака (по кожным складкам) */
 class JacksonPollock(
     private val gender: Gender,
     private val sumOfSkinfolds: Double,
@@ -69,7 +76,7 @@ class JacksonPollock(
     }
 }
 
-// BMI (по индексу массы тела)
+/** Калькулятор считающий по формуле BMI (через индекс массы тела) */
 class BMI(
     private val weight: Double,
     private val height: Double,

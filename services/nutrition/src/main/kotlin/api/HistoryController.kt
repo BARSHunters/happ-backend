@@ -8,8 +8,18 @@ import org.example.dto.HistoryRequestDTO
 import org.example.dto.HistoryResponseDTO
 import org.example.service.HistoryService
 
+/**
+ * API для работы с историей рационов питания.
+ */
 object HistoryController {
 
+    /**
+     * Запрос на получение истории КБЖУ рационов питания.
+     *
+     * @see HistoryService.getHistoryTDEEForUser
+     * @param msg Ожидается json соответсвующий [HistoryRequestDTO]
+     * @return [Unit], но отправит в KeyDB результат ([HistoryResponseDTO]).
+     */
     fun getRationHistory(msg: String) {
         val request: HistoryRequestDTO = try {
             Json.decodeFromString(msg)
@@ -23,7 +33,7 @@ object HistoryController {
             "response_nutrition_data", Json.encodeToString(
                 HistoryResponseDTO(
                     request.queryId,
-                    HistoryService.getHistoryForUser(request.login, request.days),
+                    HistoryService.getHistoryTDEEForUser(request.login, request.days),
                 )
             )
         )

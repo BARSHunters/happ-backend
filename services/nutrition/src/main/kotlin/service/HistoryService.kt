@@ -5,13 +5,31 @@ import org.example.Database
 import org.example.dto.*
 import java.util.*
 
+/**
+ * Сервис, работающий с таблицей истории рационов пользователей в Postgres
+ */
 object HistoryService {
 
     init {
         Database.initService("V0_0_1__INIT_PG_HISTORY.sql", DB.PG)
     }
 
-    fun getHistoryForUser(login: String, days: Int): List<Pair<String, HistoryRow>> {
+    /**
+     * КБЖУ актуальных рационов за последние дни
+     *
+     * В таблице хранится вся история, включая повторные генерации. Больший id - более актуальная запись рациона.
+     *
+     * Выберет из таблицы истории последние актуальные рационы за последние n дней:
+     *
+     *  - `WHERE id in ( SELECT max(id) FROM history GROUP BY date )`
+     *
+     * Возьмёт для них информацию об дневном КБЖУ.
+     *
+     * @param login пользователя, информация о котором запрашивается
+     * @param days сколько дней в промежутке (сегодня - [days])
+     * @return Значения КБЖУ по датам
+     */
+    fun getHistoryTDEEForUser(login: String, days: Int): List<Pair<String, HistoryRow>> {
         val connection = Database.getPGConnection()
 
         // Под-запрос с GROUP BY нужен, так как может возникать несколько записей для одного дня (из-за обновления рациона).
@@ -42,6 +60,18 @@ object HistoryService {
         return result
     }
 
+    /**
+     * Получить последний актуальный рацион на сегодня
+     *
+     * В таблице хранится вся история, включая повторные генерации. Больший id - более актуальная запись рациона.
+     *
+     * Выберет из таблицы для этого пользователя максимальный id по сегодняшней дате:
+     *
+     *  - `WHERE login = ? AND date = now() ORDER BY id DESC LIMIT 1`
+     *
+     * @param login пользователя, информация о котором запрашивается
+     * @return Полную строку истории
+     */
     fun getTodayHistoryForUser(login: String): HistoryFullDTO {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(
@@ -77,6 +107,12 @@ object HistoryService {
         return result
     }
 
+    /**
+     * Записать дневной рацион в историю
+     *
+     * @param login для какого пользователя составлен рацион
+     * @param dishSet сам рацион
+     */
     fun addHistory(login: String, dishSet: DailyDishSetDTO) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(

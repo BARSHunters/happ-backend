@@ -6,21 +6,33 @@ import org.example.decider.Wish
 import org.example.model.Gender
 import java.util.*
 
+/**
+ * Представление запроса на генерацию рациона
+ */
 data class RationRequestDTO(
     val queryId: UUID,
     val login: String,
 )
 
+/**
+ * Представление ответа от WeightService на запрос пожеланий пользователя
+ */
 data class WishResponseDTO(
     val queryId: UUID,
     val wish: Wish
 )
 
+/**
+ * Представление запроса на данные пользователя к UserDataService
+ */
 data class UserDataRequestDTO(
     val queryId: UUID,
     val login: String,
 )
 
+/**
+ * Представление ответа от UserDataService на запрос данных пользователя
+ */
 data class UserDTO(
     val queryId: UUID,
 
@@ -44,6 +56,9 @@ data class UserDTO(
     val preferredBodyFatCalculator: BodyFatCalculatorType?
 )
 
+/**
+ * Представление кешированной между запросами строки
+ */
 data class RationCacheDTO(
     val queryId: UUID,
     val login: String,
@@ -51,14 +66,23 @@ data class RationCacheDTO(
     val type: MealType?,
 )
 
+/**
+ * Представление ответа со сгенерированным рационом
+ */
 data class RationResponseDTO(
     val queryId: UUID,
     val dishSetDTO: DailyDishSetDTO
 )
 
 
+/**
+ * Приемы пищи: завтрак, обед, ужин
+ */
 enum class MealType { BREAKFAST, LUNCH, DINNER; }
 
+/**
+ * Представление запроса на повторную генерацию рациона (замена одного приема пищи)
+ */
 data class UpdateRationRequestDTO(
     val queryId: UUID,
     val login: String,

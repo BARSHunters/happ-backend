@@ -1,5 +1,8 @@
 package org.example.dto
 
+/**
+ * Представление одного блюда в рационе
+ */
 data class DishDTO(
     val name: String,
 
@@ -16,6 +19,9 @@ data class DishDTO(
     val recipeId: Long? = null, // Как и с фото.
 )
 
+/**
+ * Представление дневного рациона
+ */
 data class DailyDishSetDTO(
     val breakfast: DishDTO,
     val lunch: DishDTO,

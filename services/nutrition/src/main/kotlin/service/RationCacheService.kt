@@ -9,12 +9,20 @@ import org.example.dto.RationRequestDTO
 import org.example.dto.UpdateRationRequestDTO
 import java.util.*
 
+/**
+ * Сервис, работающий с таблицей кеширования запросов пользователей в Postgres
+ */
 object RationCacheService {
 
     init {
         Database.initService("V0_0_2__INIT_PG_CACHE.sql", DB.PG)
     }
 
+    /**
+     * Первая запись кеша
+     *
+     * Содержит только UUID запроса и login пользователя к которому он относится.
+     */
     fun initQuery(request: RationRequestDTO) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login) VALUES (?,?)")
@@ -25,6 +33,11 @@ object RationCacheService {
         connection.close()
     }
 
+    /**
+     * Первая запись кеша для запроса на обновление конкретного приёма пищи
+     *
+     * Содержит только UUID запроса, login пользователя к которому он относится, и прим пищи.
+     */
     fun initUpdateQuery(request: UpdateRationRequestDTO) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
@@ -36,6 +49,12 @@ object RationCacheService {
         connection.close()
     }
 
+    /**
+     * Запомнить пожелание о весе
+     *
+     * @param queryId UUID запроса кеш которого надо обновить
+     * @param wish пожелание, которое надо добавить
+     */
     fun saveWish(queryId: UUID, wish: Wish) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("UPDATE cache_ration SET wish = ? WHERE query_id = ?")
@@ -46,6 +65,12 @@ object RationCacheService {
         connection.close()
     }
 
+
+    /**
+     * Получить всю строку кеша
+     *
+     * @param queryId UUID запроса кеш которого надо получить
+     */
     fun getByQueryId(queryId: UUID): RationCacheDTO {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("SELECT * FROM cache_ration WHERE query_id = ?")
@@ -71,6 +96,12 @@ object RationCacheService {
         return result
     }
 
+
+    /**
+     * Отчистить кеш
+     *
+     * @param queryId UUID запроса кеш которого надо стереть
+     */
     fun clearQuery(queryId: UUID) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("DELETE FROM cache_ration WHERE query_id = ?")

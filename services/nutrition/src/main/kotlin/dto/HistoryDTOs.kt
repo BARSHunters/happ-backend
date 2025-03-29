@@ -2,13 +2,18 @@ package org.example.dto
 
 import java.util.*
 
-
+/**
+ * Представление запроса на получение истории КБЖУ рационов
+ */
 data class HistoryRequestDTO(
     val queryId: UUID,
     val login: String,
     val days: Int,
 )
 
+/**
+ * Представление строки таблицы истории в запросе на получение истории КБЖУ рационов
+ */
 data class HistoryRow(
     val tdee: Double,
     val protein: Double,
@@ -16,12 +21,17 @@ data class HistoryRow(
     val carbs: Double,
 )
 
+/**
+ * Представление ответа с историей КБЖУ рационов
+ */
 data class HistoryResponseDTO(
     val queryId: UUID,
     val rations: List<Pair<String, HistoryRow>>
 )
 
-
+/**
+ * Представление всех данных строки истории
+ */
 data class HistoryFullDTO(
     val login: String,
     val date: Date,

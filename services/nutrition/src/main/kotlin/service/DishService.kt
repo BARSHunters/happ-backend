@@ -4,6 +4,15 @@ import org.example.DB
 import org.example.Database
 import org.example.dto.DishDTO
 
+/**
+ * Тип блюда
+ *
+ * Описывает не только к какому приёму пищи может принадлежать блюдо,
+ * но и некоторые свойства этого типа для работы сервиса ([DishService]) и генератора рационов ([Decider][org.example.decider.Decider])
+ *
+ * @param defaultMinLimit минимальное значение количества выбираемых блюд этого типа. (по умолчанию)
+ * @param defaultMaxLimit максимально значение количества выбираемых блюд этого типа. (по умолчанию)
+ */
 enum class DishType(val defaultMinLimit: Int, val defaultMaxLimit: Int) {
     BREAKFAST(5, 10),
     LUNCH(5, 10),
@@ -11,6 +20,9 @@ enum class DishType(val defaultMinLimit: Int, val defaultMaxLimit: Int) {
     LUNCH_OR_DINNER(3, 6),
     ANY(4, 7);
 
+    /**
+     * Получить количество блюд в таблице с указанным типом
+     */
     fun getTypeCount(): Int {
         val connection = Database.getCHConnection()
 
@@ -27,12 +39,25 @@ enum class DishType(val defaultMinLimit: Int, val defaultMaxLimit: Int) {
     }
 }
 
+/**
+ * Сервис, работающий с таблицей блюд в ClickHouse
+ */
 object DishService {
 
     init {
         Database.initService("V0_0_3__INIT_CH.sql", DB.CH)
     }
 
+    /**
+     * Получить блюда определенного типа
+     *
+     * Может получить блюда из указанного отрезка
+     *
+     * @param type тип блюд
+     * @param offset начало отрезка
+     * @param limit длина отрезка
+     * @return набор прочитанных блюд
+     */
     fun getDishesByType(
         type: DishType,
         offset: Int = 0,
@@ -70,6 +95,9 @@ object DishService {
         return result
     }
 
+    /**
+     * Получить блюдо с указанным id
+     */
     fun getDishById(dishId: Long): DishDTO {
         val connection = Database.getCHConnection()
 

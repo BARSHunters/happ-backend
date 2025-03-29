@@ -11,7 +11,21 @@ import org.example.model.User
 import org.example.service.HistoryService
 import org.example.service.RationCacheService
 
+/**
+ * API для работы с генерацией рационов питания.
+ */
 object RationController {
+    /**
+     * Старт генерации рациона.
+     *
+     * Сохранит в кэше (см. [RationCacheService]) UUID запроса и login пользователя.
+     *
+     * После получения запроса обработает входной json и пойдет за нужной информацией в другие сервисы.
+     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromWeightHistoryService] и [afterFetchFromUserDataService]
+     *
+     * @param msg Ожидается json соответсвующий [RationRequestDTO]
+     * @return [Unit], но отправит запрос на получение [пожеланий пользователя][Wish] насчёт веса.
+     */
     fun requestTodayRation(msg: String) {
         val request: RationRequestDTO = try {
             Json.decodeFromString(msg)
@@ -24,6 +38,16 @@ object RationController {
         sendEvent("request_nutrition_wish", Json.encodeToString(request))
     }
 
+    /**
+     * Промежуточный этап генерации рациона.
+     *
+     * Запишет полученное [пожелание пользователя о весе][Wish] в кэше по тому же UUID запроса (см. [RationCacheService]).
+     *
+     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromUserDataService]
+     *
+     * @param msg Ожидается json соответсвующий [WishResponseDTO]
+     * @return [Unit], но отправит запрос на получение [данных пользователя][UserDTO].
+     */
     fun afterFetchFromWeightHistoryService(msg: String) {
         val request: WishResponseDTO = try {
             Json.decodeFromString(msg)
@@ -47,6 +71,19 @@ object RationController {
         sendEvent("getUserData", Json.encodeToString(UserDataRequestDTO(request.queryId, cache.login)))
     }
 
+    /**
+     * Финальный этап генерации рациона.
+     *
+     * По UUID запроса получит из кеша (см. [RationCacheService]):
+     *  - login пользователя
+     *  - [Его пожелание о весе][Wish].
+     *  - Если это обновление [по одному приему пищи][MealType], то что это за приём пищи. (см. [updateTodayRation])
+     *
+     * Для генерации вызовет [Decider.decide] (или [Decider.swap] если это обновление по одному приему пищи - см. [updateTodayRation])
+     *
+     * @param msg Ожидается json соответсвующий [UserDTO]
+     * @return [Unit], но отправит в KeyDB новый рацион ([RationResponseDTO]).
+     */
     fun afterFetchFromUserDataService(msg: String) {
         val request: UserDTO = try {
             Json.decodeFromString(msg) // FIXME форматы пока не совпадают
@@ -78,7 +115,17 @@ object RationController {
         sendEvent("nutrition:response_today_ration", Json.encodeToString(RationResponseDTO(request.queryId, dishSet)))
     }
 
-
+    /**
+     * Старт обновления рациона по одному приёму пищи.
+     *
+     * Сохранит в кэше (см. [RationCacheService]) UUID запроса и login пользователя.
+     *
+     * После получения запроса обработает входной json и пойдет за нужной информацией в другие сервисы.
+     * Процесс исполнения (генерации рациона) продолжится в [afterFetchFromWeightHistoryService] и [afterFetchFromUserDataService]
+     *
+     * @param msg Ожидается json соответсвующий [UpdateRationRequestDTO]
+     * @return [Unit], но отправит запрос на получение [пожеланий пользователя][Wish] насчёт веса.
+     */
     fun updateTodayRation(msg: String) {
         val request: UpdateRationRequestDTO = try {
             Json.decodeFromString(msg)

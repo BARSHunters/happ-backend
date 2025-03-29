@@ -3,6 +3,13 @@ package org.example.calculators
 import org.example.dto.UserDTO
 import org.example.model.Gender
 
+/**
+ * Известные калькуляторы калорий
+ *
+ * Позволяет создать объект калькулятора зная только нужный тип и [UserDTO]
+ *
+ * @param calculator конструктор нужного калькулятора
+ */
 enum class TDEECalculatorType(val calculator: (user: UserDTO) -> Calculator) {
     MIFFLIN({ user -> MifflinStJeor(user.weight, user.height, user.age, user.gender, user.activityIndex) }),
     HARRIS({ user -> HarrisBenedict(user.weight, user.height, user.age, user.gender, user.activityIndex) }),
@@ -16,7 +23,7 @@ enum class TDEECalculatorType(val calculator: (user: UserDTO) -> Calculator) {
     FAO({ user -> FAOWHO(user.weight, user.age, user.gender, user.activityIndex) })
 }
 
-// FAO/WHO/UNU 2001
+/** Калькулятор считающий по формуле FAO/WHO/UNU 2001 */
 class FAOWHO(
     private val weight: UInt,
     private val age: UInt,
@@ -43,7 +50,7 @@ class FAOWHO(
     }
 }
 
-// Формула Миффлин-Сан Жеора
+/** Калькулятор считающий по формуле Миффлин-Сан Жеора */
 class MifflinStJeor(
     private val weight: UInt,
     private val height: UInt,
@@ -58,7 +65,7 @@ class MifflinStJeor(
         }) * activityIndex
 }
 
-// формула Харрис-Бенедикта
+/** Калькулятор считающий по формуле Харрис-Бенедикта */
 class HarrisBenedict(
     private val weight: UInt,
     private val height: UInt,
@@ -72,7 +79,7 @@ class HarrisBenedict(
     }
 }
 
-// формула Кетч-МакАрдла
+/** Калькулятор считающий по формуле Кетч-МакАрдла */
 class KatchMcArdle(
     private val weight: UInt,
     private val activityIndex: Float,

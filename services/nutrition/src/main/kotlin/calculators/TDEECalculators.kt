@@ -2,6 +2,8 @@ package org.example.calculators
 
 import org.example.dto.UserDTO
 import org.example.model.Gender
+import java.time.LocalDate
+import java.time.Period
 
 /**
  * Известные калькуляторы калорий
@@ -11,16 +13,39 @@ import org.example.model.Gender
  * @param calculator конструктор нужного калькулятора
  */
 enum class TDEECalculatorType(val calculator: (user: UserDTO) -> Calculator) {
-    MIFFLIN({ user -> MifflinStJeor(user.weight, user.height, user.age, user.gender, user.activityIndex) }),
-    HARRIS({ user -> HarrisBenedict(user.weight, user.height, user.age, user.gender, user.activityIndex) }),
+    MIFFLIN({ user ->
+        MifflinStJeor(
+            user.weightKg.toUInt(),
+            user.heightCm.toUInt(),
+            Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
+            user.gender,
+            user.activityIndex
+        )
+    }),
+    HARRIS({ user ->
+        HarrisBenedict(
+            user.weightKg.toUInt(),
+            user.heightCm.toUInt(),
+            Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
+            user.gender,
+            user.activityIndex
+        )
+    }),
     KATCH({ user ->
         KatchMcArdle(
-            user.weight,
+            user.weightKg.toUInt(),
             user.activityIndex,
             user.bodyFatPercent ?: throw NullPointerException()
         )
     }),
-    FAO({ user -> FAOWHO(user.weight, user.age, user.gender, user.activityIndex) })
+    FAO({ user ->
+        FAOWHO(
+            user.weightKg.toUInt(),
+            Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
+            user.gender,
+            user.activityIndex
+        )
+    })
 }
 
 /** Калькулятор считающий по формуле FAO/WHO/UNU 2001 */

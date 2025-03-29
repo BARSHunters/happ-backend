@@ -24,6 +24,7 @@ import kotlin.random.Random
  */
 enum class Wish(val tdeeIndex: Double, val proteinIndex: Double, val fatIndex: Double, val carbsIndex: Double) {
     KEEP(1.0, 0.3, 0.25, 0.45),
+    REMAIN(1.0, 0.3, 0.25, 0.45), // То же самое что и KEEP. Для совместимости.
     GAIN(1.15, 0.3, 0.25, 0.45),
     LOSS(0.85, 0.35, 0.25, 0.4);
 }

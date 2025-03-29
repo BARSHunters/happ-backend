@@ -29,7 +29,7 @@ object HistoryService {
      * @param days сколько дней в промежутке (сегодня - [days])
      * @return Значения КБЖУ по датам
      */
-    fun getHistoryTDEEForUser(login: String, days: Int): List<Pair<String, HistoryRow>> {
+    fun getHistoryTDEEForUser(login: String, days: Int): Map<String, HistoryRow> {
         val connection = Database.getPGConnection()
 
         // Под-запрос с GROUP BY нужен, так как может возникать несколько записей для одного дня (из-за обновления рациона).
@@ -44,7 +44,7 @@ object HistoryService {
         statement.setInt(2, days)
 
         val result = statement.executeQuery().use { rs ->
-            buildList {
+            buildMap {
                 while (rs.next()) {
                     this += rs.getDate("date").toString() to HistoryRow(
                         rs.getDouble("total_tdee"),

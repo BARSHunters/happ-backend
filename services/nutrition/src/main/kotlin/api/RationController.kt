@@ -35,7 +35,7 @@ object RationController {
             return
         }
         RationCacheService.initQuery(request)
-        sendEvent("request_nutrition_wish", Json.encodeToString(request))
+        sendEvent("weight_history:request:WeightControlWish", Json.encodeToString(request))
     }
 
     /**
@@ -59,16 +59,16 @@ object RationController {
 
         val cache: RationCacheDTO
         try {
-            cache = RationCacheService.getByQueryId(request.queryId)
+            cache = RationCacheService.getByQueryId(request.id)
         } catch (e: Exception) {
             e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.queryId, "Skipped stages for this query")))
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
             return
         }
 
-        RationCacheService.saveWish(request.queryId, request.wish)
+        RationCacheService.saveWish(request.id, request.wish)
 
-        sendEvent("getUserData", Json.encodeToString(UserDataRequestDTO(request.queryId, cache.login)))
+        sendEvent("user_data:request:UserData", Json.encodeToString(UserDataRequestDTO(request.id, cache.login)))
     }
 
     /**
@@ -85,22 +85,22 @@ object RationController {
      * @return [Unit], но отправит в KeyDB новый рацион ([RationResponseDTO]).
      */
     fun afterFetchFromUserDataService(msg: String) {
-        val request: UserDTO = try {
-            Json.decodeFromString(msg) // FIXME форматы пока не совпадают
+        val request: UserDataResponseDTO = try {
+            Json.decodeFromString(msg)
         } catch (e: SerializationException) {
             e.printStackTrace()
             sendEvent("error", "Invalid JSON format")
             return
         }
 
-        val user = User(request)
+        val user = User(request.dto)
 
         val cache: RationCacheDTO
         try {
-            cache = RationCacheService.getByQueryId(request.queryId)
+            cache = RationCacheService.getByQueryId(request.id)
         } catch (e: Exception) {
             e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.queryId, "Skipped stages for this query")))
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
             return
         }
 
@@ -110,9 +110,9 @@ object RationController {
             Decider.decide(user, cache.wish ?: Wish.KEEP)
         }
 
-        RationCacheService.clearQuery(request.queryId)
+        RationCacheService.clearQuery(request.id)
         HistoryService.addHistory(cache.login, dishSet)
-        sendEvent("nutrition:response_today_ration", Json.encodeToString(RationResponseDTO(request.queryId, dishSet)))
+        sendEvent("nutrition:response:ration", Json.encodeToString(RationResponseDTO(request.id, dishSet)))
     }
 
     /**
@@ -135,6 +135,9 @@ object RationController {
             return
         }
         RationCacheService.initUpdateQuery(request)
-        sendEvent("request_nutrition_wish", Json.encodeToString(RationRequestDTO(request.queryId, request.login)))
+        sendEvent(
+            "weight_history:request:WeightControlWish",
+            Json.encodeToString(RationRequestDTO(request.id, request.login))
+        )
     }
 }

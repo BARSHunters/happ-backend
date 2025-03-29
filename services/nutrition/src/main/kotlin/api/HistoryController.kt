@@ -30,9 +30,9 @@ object HistoryController {
         }
 
         sendEvent(
-            "response_nutrition_data", Json.encodeToString(
+            "nutrition:response:CPFC", Json.encodeToString(
                 HistoryResponseDTO(
-                    request.queryId,
+                    request.id,
                     HistoryService.getHistoryTDEEForUser(request.login, request.days),
                 )
             )

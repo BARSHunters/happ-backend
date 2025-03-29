@@ -4,6 +4,8 @@ import org.example.calculators.BodyFatCalculatorType
 import org.example.calculators.Calculator
 import org.example.calculators.TDEECalculatorType
 import org.example.dto.UserDTO
+import java.time.LocalDate
+import java.time.Period
 
 enum class Gender { MALE, FEMALE }
 
@@ -41,10 +43,10 @@ class User(
     }
 
     constructor(dto: UserDTO) : this(
-        dto.login,
-        dto.weight,
-        dto.height,
-        dto.age,
+        dto.username,
+        dto.weightKg.toUInt(),
+        dto.heightCm.toUInt(),
+        Period.between(dto.birthDate, LocalDate.now()).years.toUInt(),
         dto.gender,
         dto.activityIndex,
         dto.preferredTDEECalculator?.calculator?.invoke(dto) ?: TDEECalculatorType.FAO.calculator(dto),

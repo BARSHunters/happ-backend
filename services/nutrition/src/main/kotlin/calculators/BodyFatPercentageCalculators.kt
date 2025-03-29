@@ -3,6 +3,8 @@ package org.example.calculators
 import org.example.dto.UserDTO
 import org.example.model.Gender
 import kotlin.math.ln
+import java.time.LocalDate
+import java.time.Period
 
 /**
  * Известные калькуляторы процента жира
@@ -12,13 +14,13 @@ import kotlin.math.ln
  * @param calculator конструктор нужного калькулятора
  */
 enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) {
-    YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.height.toDouble()) }),
+    YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.heightCm.toDouble()) }),
     USNavy({ user ->
         USNavy(
             user.gender,
             user.waist?.toDouble() ?: throw NullPointerException(),
             user.neck?.toDouble() ?: throw NullPointerException(),
-            user.height.toDouble(),
+            user.heightCm.toDouble(),
             user.hips?.toDouble() ?: throw NullPointerException()
         )
     }),
@@ -26,10 +28,17 @@ enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) 
         JacksonPollock(
             user.gender,
             user.sumOfSkinfolds?.toDouble() ?: throw NullPointerException(),
-            user.age.toDouble()
+            Period.between(user.birthDate, LocalDate.now()).years.toDouble()
         )
     }),
-    BMI({ user -> BMI(user.weight.toDouble(), user.height.toDouble(), user.age.toDouble(), user.gender) })
+    BMI({ user ->
+        BMI(
+            user.weightKg.toDouble(),
+            user.heightCm.toDouble(),
+            Period.between(user.birthDate, LocalDate.now()).years.toDouble(),
+            user.gender
+        )
+    })
 }
 
 /** Калькулятор считающий по формуле YMCA (по обхвату талии) */
@@ -38,7 +47,7 @@ class YMCA(
     private val height: Double
 ) : Calculator {
     override fun calculate(): Double {
-        return (86.010 * ln(waist.toDouble()) - 70.041 * ln(height.toDouble()) + 36.76)
+        return (86.010 * ln(waist) - 70.041 * ln(height) + 36.76)
     }
 }
 

@@ -5,12 +5,9 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.ErrorType
-import model.response.SocialResponse
-import model.response.ErrorDto
-import model.response.ResponseWrapper
 import model.request.RequestWrapper
 import model.request.FriendshipRequestDto
-import model.response.FriendshipResponseDto
+import model.response.*
 import service.SocialService
 import java.util.*
 
@@ -89,9 +86,34 @@ class SocialController(private val socialService: SocialService) {
         }
 
         try {
-            val profile = socialService.getUserProfile(request.id, request.dto)
-            val response = SocialResponse(Json.encodeToString(profile))
-            sendResponse("social:response:GetUserProfile", request.id, response)
+            socialService.getUserProfile(request.id, request.dto)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Internal Server Error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendError(request.id, error)
+        }
+    }
+
+    fun handleGetFriendsList(requestBody: String) {
+        println("Get friend list request: $requestBody")
+        val request: RequestWrapper<String> = try {
+            Json.decodeFromString(requestBody)
+        } catch (e: SerializationException) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendError(UUID.fromString("-1"), error)
+            return
+        }
+
+        try {
+            val friendList = socialService.getFriendsList(request.dto)
+            if (friendList.isNotEmpty()) {
+                val friendsListResponse = FriendsListResponse(friendList, friendList.size)
+                val response = ResponseWrapper(request.id, friendsListResponse)
+                sendEvent("social:response:GetFriendsList", Json.encodeToString(response))
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"

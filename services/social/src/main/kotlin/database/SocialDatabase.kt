@@ -4,6 +4,7 @@ import io.github.cdimascio.dotenv.dotenv
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
+import kotlin.system.exitProcess
 
 object SocialDatabase {
     private val dotenv = dotenv()
@@ -16,7 +17,7 @@ object SocialDatabase {
             createTables()
         } catch (e: Exception) {
             println("Database connection error: ${e.message}")
-            throw e
+            exitProcess(1)
         }
     }
 
@@ -27,11 +28,11 @@ object SocialDatabase {
                 statement.execute(
                     """
                     CREATE TABLE IF NOT EXISTS friendships (
-                        id UUID PRIMARY KEY,
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                         sender_username VARCHAR(255) NOT NULL,
                         receiver_username VARCHAR(255) NOT NULL,
                         status VARCHAR(50) NOT NULL,
-                        created_at TIMESTAMP NOT NULL,
+                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(sender_username, receiver_username)
                     );
                     """

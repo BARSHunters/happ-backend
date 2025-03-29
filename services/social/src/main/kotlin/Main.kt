@@ -34,12 +34,17 @@ fun handleUserDataResponse(responseBody: String) {
     userProfileService.handleUserDataResponse(responseBody)
 }
 
+fun getFriendListRequest(requestBody: String) {
+    socialController.handleGetFriendsList(requestBody)
+}
+
 fun main(): Unit = runServiceListener(
     mapOf(
         "social:request:ProposeFriendship" to ::proposeFriendshipRequest,
         "social:request:RespondToFriendship" to ::respondToFriendshipRequest,
         "social:request:GetUserProfile" to ::getUserProfileRequest,
-        "user_data:response:GetUserData" to ::handleUserDataResponse
+        "user_data:response:GetUserData" to ::handleUserDataResponse,
+        "social:request:GetFriendsList" to ::getFriendListRequest
     ),
     ::socialServiceStartup
 ) 

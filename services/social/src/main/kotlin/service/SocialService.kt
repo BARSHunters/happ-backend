@@ -4,10 +4,10 @@ import keydb.sendEvent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.FriendshipStatus
-import model.response.SocialResponse
 import model.request.FriendshipRequestDto
 import model.response.FriendshipResponseDto
 import model.response.ResponseWrapper
+import model.response.SocialResponse
 import repository.FriendshipRepository
 import java.util.*
 
@@ -84,11 +84,12 @@ class SocialService(
     fun getUserProfile(id: UUID, username: String) {
         // Get friend count from repository
         val friends = friendshipRepository.getFriends(username)
-        
-        // Request additional profile data from other services
-        userProfileService.requestUserProfile(id, username)
-        
-        // Update friend count in profile data
-        userProfileService.updateFriendCount(id, friends.size)
+        // Request profile data
+        userProfileService.requestUserProfile(id, username, friends.size)
+    }
+
+    fun getFriendsList(username: String): List<String> {
+        val friends = friendshipRepository.getFriends(username)
+        return friends
     }
 } 

@@ -3,9 +3,10 @@ package service
 import keydb.sendEvent
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import model.ErrorType
 import model.Profile
 import model.UserData
-import model.response.SocialResponse
+import model.response.ErrorDto
 import model.response.ResponseWrapper
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -13,65 +14,55 @@ import java.util.concurrent.ConcurrentHashMap
 class UserProfileService {
     private val pendingRequests = ConcurrentHashMap<UUID, Profile>()
 
-    fun requestUserProfile(id: UUID, username: String) {
-        // Initialize the profile data
-        val profileData = Profile(
+    fun requestUserProfile(id: UUID, username: String, friendCount: Int) {
+        // Create a future to wait for the complete profile
+
+        pendingRequests[id] = Profile(
             username = username,
             name = "",
-            friendCount = 0,
+            friendCount = friendCount,
             age = 0,
             height = 0,
             weight = 0f
         )
-        pendingRequests[id] = profileData
 
         // Request user data (name, age, height, weight)
-        val userDataId = UUID.randomUUID()
         val userDataRequest = """
             {
-                "id": "${userDataId}",
-                "username": "${username}"
+                "id": "$id",
+                "username": "$username"
             }
         """.trimIndent()
-        sendEvent("user_data:request:GetUserData", userDataRequest)
+        sendEvent("user_data:request:UserData", userDataRequest)
     }
 
     fun handleUserDataResponse(responseBody: String) {
         try {
-            val response: ResponseWrapper<UserData> = Json.decodeFromString(responseBody)
-            val profileData = pendingRequests[response.id] ?: return
-
-            // Update profile with user data
-            profileData.age = response.dto.age
-            profileData.name = response.dto.name
-            profileData.height = response.dto.height
-            profileData.weight = response.dto.weight
-
-            // Check if we have all data
-            checkAndSendCompleteProfile(response.id, profileData)
+            println("Received user data response: $responseBody")
+            val response: ResponseWrapper<UserData> = try {
+                Json.decodeFromString(responseBody)
+            } catch(e: Exception) {
+                e.printStackTrace()
+                val errorMessage = "Invalid JSON format"
+                val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+                val resp = ResponseWrapper(UUID.fromString("-1"), error)
+                val responseJson = Json.encodeToString(resp)
+                sendEvent("error", responseJson)
+                return
+            }
+            val profile = pendingRequests[response.id] ?: return
+            // Create profile from user data
+            profile.name = response.dto.name
+            profile.age = response.dto.age
+            profile.height = response.dto.height
+            profile.weight = response.dto.weight
+            pendingRequests.remove(response.id)
+            val responseWrapper = ResponseWrapper(response.id, profile)
+            val json = Json.encodeToString(responseWrapper)
+            sendEvent("social:response:GetUserProfile", json)
         } catch (e: Exception) {
             println("Error handling user data response: ${e.message}")
+            e.printStackTrace()
         }
-    }
-
-    private fun checkAndSendCompleteProfile(id: UUID, profileData: Profile) {
-        // Check if we have all required data
-        if (profileData.age > 0 &&
-            profileData.height > 0 &&
-            profileData.weight > 0) {
-            
-            // Send complete profile
-            val response = ResponseWrapper(id, SocialResponse(Json.encodeToString(profileData)))
-            sendEvent("social:response:GetUserProfile", Json.encodeToString(response))
-            
-            // Clean up
-            pendingRequests.remove(id)
-        }
-    }
-
-    fun updateFriendCount(id: UUID, count: Int) {
-        val profileData = pendingRequests[id] ?: return
-        profileData.friendCount = count
-        checkAndSendCompleteProfile(id, profileData)
     }
 } 

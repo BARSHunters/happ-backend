@@ -12,13 +12,12 @@ class FriendshipRepository {
         return try {
             SocialDatabase.getConnection().use { connection ->
                 val statement = connection.prepareStatement(
-                    "INSERT INTO friendships (id, sender_username, receiver_username, status, created_at) VALUES (?, ?, ?, ?, ?);"
+                    "INSERT INTO friendships (sender_username, receiver_username, status, created_at) VALUES (?, ?, ?, ?);"
                 )
-                statement.setString(1, UUID.randomUUID().toString())
-                statement.setString(2, senderUsername)
-                statement.setString(3, receiverUsername)
-                statement.setString(4, FriendshipStatus.PENDING.toString())
-                statement.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()))
+                statement.setString(1, senderUsername)
+                statement.setString(2, receiverUsername)
+                statement.setString(3, FriendshipStatus.PENDING.toString())
+                statement.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()))
                 statement.executeUpdate() > 0
             }
         } catch (e: Exception) {
@@ -56,7 +55,7 @@ class FriendshipRepository {
                     "UPDATE friendships SET status = ? WHERE id = ?;"
                 )
                 statement.setString(1, status.toString())
-                statement.setString(2, friendshipId.toString())
+                statement.setObject(2, friendshipId, java.sql.Types.OTHER)
                 statement.executeUpdate() > 0
             }
         } catch (e: Exception) {

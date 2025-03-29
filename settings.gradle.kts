@@ -16,6 +16,7 @@ include("shared")
 
 include(":activity")
 include(":weight_history")
-
+include(":social")
 project(":activity").projectDir = File("./services/activity")
 project(":weight_history").projectDir = File("./services/weight_history")
+project(":social").projectDir = File("./services/social")

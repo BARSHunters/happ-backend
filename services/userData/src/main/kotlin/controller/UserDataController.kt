@@ -95,6 +95,7 @@ class UserDataController(private val userDataService: UserDataService) {
     }
 
     fun receiveUserData(requestBody: String) {
+        println("Get user data request $requestBody")
         val request: GetterDto = try {
             Json.decodeFromString<GetterDto>(requestBody)
         } catch (e: Exception) {

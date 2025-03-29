@@ -3,6 +3,7 @@ package service
 import model.Gender
 import model.UserData
 import model.WeightDesire
+import model.response.UserDataResponse
 import repository.UserRepository
 import java.time.LocalDate
 
@@ -47,9 +48,12 @@ class UserDataService(private val userRepository: UserRepository) {
         return false
     }
 
-    fun getUserData(username: String): UserData? {
+    fun getUserData(username: String): UserDataResponse? {
         val userData = userRepository.findByUsername(username) ?: return null
-        return userData
+        val userDataResponse = UserDataResponse(userData.username,
+            userData.name, calculateAge(userData.birthDate), userData.birthDate,
+            userData.gender, userData.heightCm, userData.weightKg, userData.weightDesire)
+        return userDataResponse
     }
 
     fun getName(username: String): String? {
@@ -66,6 +70,10 @@ class UserDataService(private val userRepository: UserRepository) {
 
     fun getAge(username: String): Int? {
         val birthDate = userRepository.findByUsername(username)?.birthDate ?: return null
+        return calculateAge(birthDate)
+    }
+
+    private fun calculateAge(birthDate: LocalDate): Int {
         var age = LocalDate.now().minusYears(birthDate.year.toLong()).year
         if (LocalDate.now().dayOfYear < birthDate.dayOfYear) {
             age--

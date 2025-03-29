@@ -67,14 +67,7 @@ object RationController {
             return
         }
 
-        val dishSet = Decider.decide(
-            user,
-            try {
-                Wish.valueOf(cache.wish ?: "KEEP")
-            } catch (e: IllegalArgumentException) {
-                Wish.KEEP
-            }
-        )
+        val dishSet = Decider.decide(user, cache.wish ?: Wish.KEEP)
 
         RationCacheService.clearQuery(request.queryId)
         HistoryService.addHistory(cache.login, dishSet)

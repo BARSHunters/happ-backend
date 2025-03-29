@@ -2,6 +2,7 @@ package org.example.dto
 
 import org.example.calculators.BodyFatCalculatorType
 import org.example.calculators.TDEECalculatorType
+import org.example.decider.Wish
 import org.example.model.Gender
 import java.util.*
 
@@ -12,7 +13,7 @@ data class RationRequestDTO(
 
 data class WishResponseDTO(
     val queryId: UUID,
-    val wish: String
+    val wish: Wish
 )
 
 data class UserDataRequestDTO(
@@ -46,7 +47,7 @@ data class UserDTO(
 data class RationCacheDTO(
     val queryId: UUID,
     val login: String,
-    val wish: String?
+    val wish: Wish?,
 )
 
 data class RationResponseDTO(

@@ -16,10 +16,10 @@ object RationCacheService {
         connection.close()
     }
 
-    fun saveWish(queryId: UUID, wish: String) {
+    fun saveWish(queryId: UUID, wish: Wish) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("UPDATE cache_ration SET wish = ? WHERE query_id = ?")
-        statement.setString(1, wish)
+        statement.setString(1, wish.name)
         statement.setObject(2, queryId)
         statement.executeUpdate()
         statement.close()
@@ -37,7 +37,7 @@ object RationCacheService {
                     RationCacheDTO(
                         rs.getObject("query_id", UUID::class.java),
                         rs.getString("login"),
-                        rs.getString("wish"),
+                        rs.getObject("wish", Wish::class.java),
                     )
                 } else {
                     throw Exception("No rows with query_id=$queryId")

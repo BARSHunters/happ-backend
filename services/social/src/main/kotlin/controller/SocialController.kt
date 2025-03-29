@@ -10,7 +10,7 @@ import model.response.ErrorDto
 import model.response.ResponseWrapper
 import model.request.RequestWrapper
 import model.request.FriendshipRequestDto
-import model.request.FriendshipResponseDto
+import model.response.FriendshipResponseDto
 import service.SocialService
 import java.util.*
 

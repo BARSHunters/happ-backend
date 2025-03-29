@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import model.FriendshipStatus
 import model.response.SocialResponse
 import model.request.FriendshipRequestDto
-import model.request.FriendshipResponseDto
+import model.response.FriendshipResponseDto
 import model.response.ResponseWrapper
 import repository.FriendshipRepository
 import java.util.*

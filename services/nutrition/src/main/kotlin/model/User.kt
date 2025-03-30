@@ -18,6 +18,7 @@ enum class Gender { MALE, FEMALE }
  * @property tdeeCalculator калькулятор для расчёта процента жира (нужен для некоторых калькуляторов калорий).
  *  Для ожидаемого результата должен быть одним из типов [BodyFatCalculatorType]
  */
+@Suppress("unused")
 class User(
     val login: String,
     val weight: UInt,

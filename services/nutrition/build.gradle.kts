@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "2.1.10"
     kotlin("plugin.serialization") version "2.0.10"
+    id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
 group = "org.example"
@@ -38,4 +39,17 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(17)
+}
+
+// Конфигурация ktlint
+ktlint {
+    version.set("1.0.1") // Укажите версию ktlint
+    debug.set(true) // Включите отладочный вывод
+    verbose.set(true) // Включите подробный вывод
+    outputToConsole.set(true) // Вывод результатов в консоль
+    ignoreFailures.set(false) // Остановить сборку при обнаружении ошибок
+    enableExperimentalRules.set(true) // Включите экспериментальные правила
+    filter {
+        exclude("**/generated/**") // Исключите сгенерированные файлы
+    }
 }

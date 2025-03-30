@@ -12,6 +12,7 @@ import java.time.Period
  *
  * @param calculator конструктор нужного калькулятора
  */
+@Suppress("unused")
 enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Float) -> Calculator) {
     MIFFLIN({ user, activityIndex ->
         MifflinStJeor(

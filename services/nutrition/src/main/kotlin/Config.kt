@@ -2,6 +2,8 @@ package org.example
 
 import java.util.*
 import io.github.cdimascio.dotenv.dotenv
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 /**
  * Конфигурация приложения
@@ -22,6 +24,7 @@ import io.github.cdimascio.dotenv.dotenv
  * Если `.env` файл не найден стадия поиска в нем пропускается.
  */
 object Config {
+    private val logger: Logger = LoggerFactory.getLogger(Database::class.java)
     private val env = dotenv {
         directory = "./services/nutrition" // Указываем путь к .env файлу
         ignoreIfMissing = true // Игнорировать, если файл отсутствует
@@ -31,7 +34,7 @@ object Config {
 
     init {
         var profile = System.getenv("PROFILE") ?: ""
-        System.out.println("Using '$profile'")
+        logger.info("Using '$profile'")
         profile = if (profile.isNotEmpty()) ("-$profile") else ""
         profile = profile.lowercase()
 

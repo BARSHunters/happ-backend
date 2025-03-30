@@ -13,6 +13,7 @@ import java.time.Period
  *
  * @param calculator конструктор нужного калькулятора
  */
+@Suppress("unused")
 enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) {
     YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.heightCm.toDouble()) }),
     USNavy({ user ->

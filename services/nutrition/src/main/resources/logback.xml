@@ -5,10 +5,10 @@
         </encoder>
     </appender>
 
-    <root level="info">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
 
     <!-- Custom Log Levels for Specific Packages -->
-    <logger name="com.clickhouse" level="info" />
+    <logger name="com.clickhouse" level="INFO" />
 </configuration>

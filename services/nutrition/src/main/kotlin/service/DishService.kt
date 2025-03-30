@@ -24,6 +24,8 @@ enum class DishType(val defaultMinLimit: Int, val defaultMaxLimit: Int) {
      * Получить количество блюд в таблице с указанным типом
      */
     fun getTypeCount(): Int {
+        DishService
+
         val connection = Database.getCHConnection()
 
         val statement = connection.prepareStatement(

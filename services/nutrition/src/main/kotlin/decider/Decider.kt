@@ -9,6 +9,7 @@ import org.example.service.DishType
 import org.example.service.HistoryService
 import kotlin.math.abs
 import kotlin.random.Random
+import kotlin.math.max
 
 /**
  * Пожелание пользователя об изменении/сохранении веса.
@@ -69,18 +70,18 @@ object Decider {
 
         val anyDishes = DishService.getDishesByType(
             type = DishType.ANY,
-            offset = Random.nextInt(0, TOTAL_ANY - DishType.ANY.defaultMaxLimit),
+            offset = Random.nextInt(0, max(TOTAL_ANY - DishType.ANY.defaultMaxLimit, 1)),
             limit = Random.nextInt(DishType.ANY.defaultMinLimit, DishType.ANY.defaultMaxLimit)
         )
         val lunchOrDinner = DishService.getDishesByType(
             type = DishType.LUNCH_OR_DINNER,
-            offset = Random.nextInt(0, TOTAL_LD - DishType.LUNCH_OR_DINNER.defaultMaxLimit),
+            offset = Random.nextInt(0, max(TOTAL_LD - DishType.LUNCH_OR_DINNER.defaultMaxLimit, 1)),
             limit = Random.nextInt(DishType.LUNCH_OR_DINNER.defaultMinLimit, DishType.LUNCH_OR_DINNER.defaultMaxLimit)
         ) + anyDishes
 
         val breakfasts = DishService.getDishesByType(
             type = DishType.BREAKFAST,
-            offset = Random.nextInt(0, TOTAL_BREAKFAST - DishType.BREAKFAST.defaultMaxLimit),
+            offset = Random.nextInt(0, max(TOTAL_BREAKFAST - DishType.BREAKFAST.defaultMaxLimit, 1)),
             limit = Random.nextInt(DishType.BREAKFAST.defaultMinLimit, DishType.BREAKFAST.defaultMaxLimit)
         ).map {
             if (Random.nextDouble() < 0.3 && anyDishes.isNotEmpty()) {
@@ -89,7 +90,7 @@ object Decider {
         }.toList()
         val lunches = DishService.getDishesByType(
             type = DishType.LUNCH,
-            offset = Random.nextInt(0, TOTAL_LUNCH - DishType.LUNCH.defaultMaxLimit),
+            offset = Random.nextInt(0, max(TOTAL_LUNCH - DishType.LUNCH.defaultMaxLimit, 1)),
             limit = Random.nextInt(DishType.LUNCH.defaultMinLimit, DishType.LUNCH.defaultMaxLimit)
         ).map {
             if (Random.nextDouble() < 0.3 && lunchOrDinner.isNotEmpty()) {
@@ -98,7 +99,7 @@ object Decider {
         }.toList()
         val dinners = DishService.getDishesByType(
             type = DishType.DINNER,
-            offset = Random.nextInt(0, TOTAL_DINNER - DishType.DINNER.defaultMaxLimit),
+            offset = Random.nextInt(0, max(TOTAL_DINNER - DishType.DINNER.defaultMaxLimit, 1)),
             limit = Random.nextInt(DishType.DINNER.defaultMinLimit, DishType.DINNER.defaultMaxLimit)
         ).map {
             if (Random.nextDouble() < 0.3 && lunchOrDinner.isNotEmpty()) {
@@ -198,13 +199,13 @@ object Decider {
 
         val other = DishService.getDishesByType(
             type = DishType.ANY,
-            offset = Random.nextInt(0, TOTAL_ANY - DishType.ANY.defaultMaxLimit),
+            offset = Random.nextInt(0, max(TOTAL_ANY - DishType.ANY.defaultMaxLimit, 1)),
             limit = Random.nextInt(DishType.ANY.defaultMinLimit, DishType.ANY.defaultMaxLimit)
         ).toMutableList()
         if (mealType == MealType.LUNCH || mealType == MealType.DINNER) {
             other += DishService.getDishesByType(
                 type = DishType.LUNCH_OR_DINNER,
-                offset = Random.nextInt(0, TOTAL_LD - DishType.LUNCH_OR_DINNER.defaultMaxLimit),
+                offset = Random.nextInt(0, max(TOTAL_LD - DishType.LUNCH_OR_DINNER.defaultMaxLimit, 1)),
                 limit = Random.nextInt(
                     DishType.LUNCH_OR_DINNER.defaultMinLimit,
                     DishType.LUNCH_OR_DINNER.defaultMaxLimit
@@ -216,7 +217,7 @@ object Decider {
             type = DishType.valueOf(mealType.name),
             offset = Random.nextInt(
                 0,
-                DishType.valueOf(mealType.name).getTypeCount() - DishType.valueOf(mealType.name).defaultMaxLimit
+                max(DishType.valueOf(mealType.name).getTypeCount() - DishType.valueOf(mealType.name).defaultMaxLimit, 1)
             ),
             limit = Random.nextInt(
                 DishType.valueOf(mealType.name).defaultMinLimit,

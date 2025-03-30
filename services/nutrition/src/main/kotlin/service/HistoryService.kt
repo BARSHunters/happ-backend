@@ -3,7 +3,7 @@ package org.example.service
 import org.example.DB
 import org.example.Database
 import org.example.dto.*
-import java.util.*
+import java.time.LocalDate
 
 /**
  * Сервис, работающий с таблицей истории рационов пользователей в Postgres
@@ -86,7 +86,7 @@ object HistoryService {
                 if (rs.next()) {
                     HistoryFullDTO(
                         rs.getString("login"),
-                        rs.getObject("date", Date::class.java),
+                        rs.getObject("date", LocalDate::class.java),
                         rs.getLong("breakfast"),
                         rs.getInt("breakfast_weight"),
                         rs.getLong("lunch"),
@@ -143,7 +143,7 @@ object HistoryService {
      *
      * @return рацион в представлении, используемом при генерации. ([DailyDishSetDTO])
      */
-    fun getFromHistoryRationByDate(login: String, date: Date): DailyDishSetDTO {
+    fun getFromHistoryRationByDate(login: String, date: LocalDate): DailyDishSetDTO {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(
             "SELECT * FROM history WHERE login = ? AND date = ? ORDER BY id DESC LIMIT 1"

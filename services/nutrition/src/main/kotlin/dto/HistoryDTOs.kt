@@ -1,5 +1,6 @@
 package org.example.dto
 
+import java.time.LocalDate
 import java.util.*
 
 /**
@@ -34,7 +35,7 @@ data class HistoryResponseDTO(
  */
 data class HistoryFullDTO(
     val login: String,
-    val date: Date,
+    val date: LocalDate,
     val breakfast: Long,
     val breakfastWeight: Int,
     val lunch: Long,
@@ -53,5 +54,5 @@ data class HistoryFullDTO(
 data class HistoryRequestRationByDateDTO(
     val id: UUID,
     val login: String,
-    val date: Date,
+    val date: LocalDate,
 )

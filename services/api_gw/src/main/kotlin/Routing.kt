@@ -15,13 +15,7 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.util.*
 
-fun Application.configureRouting() {/*install(RequestValidation) {
-        validate<String> { bodyText ->
-            if (!bodyText.startsWith("Hello"))
-                ValidationResult.Invalid("Body text should start with 'Hello'")
-            else ValidationResult.Valid
-        }
-    }*/
+fun Application.configureRouting() {
     routing {
         get("/echo/{phrase}") {
             val result = getResultFromMicroservice("channel", { true }) {
@@ -57,49 +51,49 @@ fun Application.configureRouting() {/*install(RequestValidation) {
                 call.respond(result)
             }
 
-            get("/getUserInfo/{username}") {
-
-            }
-
             post("/updateInfo") {
                 val uuidWrapper = UUIDWrapper(UUID.randomUUID(), call.receiveText())
                 sendEvent("user_data:request:UpdateUserData", Json.encodeToString(uuidWrapper))
             }
 
-            get("/getFriends") {
+            get("/getUserInfo/{username}") {
+                TODO()
+            }
 
+            get("/getFriends") {
+                TODO()
             }
 
             get("/getAchievements") {
-
+                TODO()
             }
 
             get("/getAchievements/{username}") {
-
+                TODO()
             }
 
             get("/getFriendsRequests") {
-
+                TODO()
             }
 
             post("/addFriend/{username}") {
-
+                TODO()
             }
 
             post("/friendRequestAnswer/{username}") {
-
+                TODO()
             }
 
             get("/getWeightHistory") {
-
+                TODO()
             }
 
             get("/getActivities") {
-
+                TODO()
             }
 
             post("/newActivity") {
-
+                TODO()
             }
 
             get("/getNutritionMenu") {

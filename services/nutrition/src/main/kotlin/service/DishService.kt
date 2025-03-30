@@ -66,7 +66,7 @@ object DishService {
         val connection = Database.getCHConnection()
 
         val statement = connection.prepareStatement(
-            "SELECT * FROM dish WHERE type = ? ORDER BY type LIMIT ? OFFSET ?;",
+            "SELECT * FROM nutrition.dish WHERE type = ? ORDER BY type LIMIT ? OFFSET ?;",
         )
         statement.setString(1, type.toString())
         statement.setInt(2, offset)
@@ -101,7 +101,7 @@ object DishService {
     fun getDishById(dishId: Long): DishDTO {
         val connection = Database.getCHConnection()
 
-        val statement = connection.prepareStatement("SELECT * FROM dish WHERE id = ? LIMIT 1;")
+        val statement = connection.prepareStatement("SELECT * FROM nutrition.dish WHERE id = ? LIMIT 1;")
         statement.setLong(1, dishId)
 
         val result = statement.executeQuery().use { rs ->

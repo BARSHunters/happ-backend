@@ -25,7 +25,7 @@ object RationCacheService {
      */
     fun initQuery(request: RationRequestDTO) {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login) VALUES (?,?)")
+        val statement = connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login) VALUES (?,?)")
         statement.setObject(1, request.id)
         statement.setString(2, request.login)
         statement.executeUpdate()
@@ -40,7 +40,7 @@ object RationCacheService {
      */
     fun initUpdateQuery(request: UpdateRationRequestDTO) {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("INSERT INTO cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
+        val statement = connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
         statement.setObject(1, request.id)
         statement.setString(2, request.login)
         statement.setString(3, request.type.name)
@@ -57,7 +57,7 @@ object RationCacheService {
      */
     fun saveWish(queryId: UUID, wish: Wish) {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("UPDATE cache_ration SET wish = ? WHERE query_id = ?")
+        val statement = connection.prepareStatement("UPDATE nutrition.cache_ration SET wish = ? WHERE query_id = ?")
         statement.setString(1, wish.name)
         statement.setObject(2, queryId)
         statement.executeUpdate()
@@ -73,7 +73,7 @@ object RationCacheService {
      */
     fun saveActivity(queryId: UUID, activityIndex: Float) {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("UPDATE cache_ration SET activity_index = ? WHERE query_id = ?")
+        val statement = connection.prepareStatement("UPDATE nutrition.cache_ration SET activity_index = ? WHERE query_id = ?")
         statement.setFloat(1, activityIndex)
         statement.setObject(2, queryId)
         statement.executeUpdate()
@@ -89,8 +89,8 @@ object RationCacheService {
      */
     fun getByQueryId(queryId: UUID): RationCacheDTO {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("SELECT * FROM cache_ration WHERE query_id = ?")
         statement.setString(1, queryId.toString())
+        val statement = connection.prepareStatement("SELECT * FROM nutrition.cache_ration WHERE query_id = ?")
 
         val result = statement.executeQuery().use { rs ->
             {
@@ -121,7 +121,7 @@ object RationCacheService {
      */
     fun clearQuery(queryId: UUID) {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("DELETE FROM cache_ration WHERE query_id = ?")
+        val statement = connection.prepareStatement("DELETE FROM nutrition.cache_ration WHERE query_id = ?")
         statement.setObject(1, queryId)
         statement.executeUpdate()
         statement.close()

@@ -37,9 +37,9 @@ object HistoryService {
         // Под-запрос с GROUP BY нужен, так как может возникать несколько записей для одного дня (из-за обновления рациона).
         // Где больше id - там и правда.
         val statement = connection.prepareStatement(
-            """SELECT date, total_tdee, total_protein, total_fat, total_carbs FROM history
+            """SELECT date, total_tdee, total_protein, total_fat, total_carbs FROM nutrition.history
                 | WHERE login = ? AND date >= NOW() - INTERVAL ? DAY
-                |    AND id in ( SELECT max(id) FROM history GROUP BY date )
+                |    AND id in ( SELECT max(id) FROM nutrition.history GROUP BY date )
                 | ORDER BY date;""".trimMargin(),
         )
         statement.setString(1, login)
@@ -77,7 +77,7 @@ object HistoryService {
     fun getTodayHistoryForUser(login: String): HistoryFullDTO {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(
-            "SELECT * FROM history WHERE login = ? AND date = now() ORDER BY id DESC LIMIT 1"
+            "SELECT * FROM nutrition.history WHERE login = ? AND date = now() ORDER BY id DESC LIMIT 1"
         )
         statement.setString(1, login)
 
@@ -118,7 +118,7 @@ object HistoryService {
     fun addHistory(login: String, dishSet: DailyDishSetDTO) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(
-            """INSERT INTO history VALUES
+            """INSERT INTO nutrition.history VALUES
             |(?,now(),?,?,?,?,?,?,?,?,?,?)
         """.trimMargin()
         )
@@ -146,7 +146,7 @@ object HistoryService {
     fun getFromHistoryRationByDate(login: String, date: LocalDate): DailyDishSetDTO {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(
-            "SELECT * FROM history WHERE login = ? AND date = ? ORDER BY id DESC LIMIT 1"
+            "SELECT * FROM nutrition.history WHERE login = ? AND date = ? ORDER BY id DESC LIMIT 1"
         )
         statement.setString(1, login)
         statement.setObject(2, date)

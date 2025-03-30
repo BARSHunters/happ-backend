@@ -16,8 +16,10 @@ include("shared")
 
 include(":api_gw")
 include(":weight_history")
+include(":nutrition")
 include(":echo")
 
 project(":echo").projectDir = File("./services/echo")
 project(":api_gw").projectDir = File("./services/api_gw")
 project(":weight_history").projectDir = File("./services/weight_history")
+project(":nutrition").projectDir = File("./services/nutrition")

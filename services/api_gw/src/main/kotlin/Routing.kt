@@ -2,8 +2,10 @@ package com.example
 
 import com.example.data.HistoryRequestRationByDateDTO
 import com.example.data.RationRequestDTO
+import com.example.data.RegisterDto
 import com.example.data.UserDataRequest
 import com.example.util.UUIDWrapper
+import com.example.util.replaceLast
 import com.example.util.uuidEquals
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -11,6 +13,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import keydb.sendEvent
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.util.*
@@ -20,7 +23,6 @@ fun Application.configureRouting() {
         get("/echo/{phrase}") {
             val result = getResultFromMicroservice("channel", { true }) {
                 sendEvent("echo", call.parameters["phrase"]!!)
-                println("event sent")
             }
             call.respond(result)
         }
@@ -28,13 +30,19 @@ fun Application.configureRouting() {
         post("/login") {
             val uuidWrapper = UUIDWrapper(UUID.randomUUID(), call.receiveText())
             val result = getResultFromMicroservice("auth:response:Login", uuidEquals(uuidWrapper.uuid)) {
+                println("2345")
                 sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
             }
             call.respond(result)
         }
 
         post("/register") {
-            call.respond(wrapUUIDAndGetResult("auth:request:Register", "auth:response:Register", call.receiveText()))
+            val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<RegisterDto>(call.receiveText()))
+            val result = getResultFromMicroservice("auth:response:Register", uuidEquals(uuidWrapper.uuid)) {
+                sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
+            }
+            call.respond(result)
+            //call.respond(wrapUUIDAndGetResult("auth:request:Register", "auth:response:Register", call.receiveText()))
         }
 
         authenticate("auth-bearer") {

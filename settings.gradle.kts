@@ -16,6 +16,7 @@ include("shared")
 
 include(":auth")
 include(":userData")
-
+include(":test-service")
 project(":auth").projectDir = File("./services/auth")
 project(":userData").projectDir = File("./services/userData")
+project(":test-service").projectDir = File("./services/test-service")

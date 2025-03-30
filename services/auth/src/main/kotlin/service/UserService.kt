@@ -51,12 +51,15 @@ class UserService(private val userRepository: UserRepository, private val tokenR
         return null
     }
 
-    fun validateJwtToken(token: String): Boolean {
+    fun validateJwtToken(token: String): String? {
         if (!JwtTokenUtil.verifyToken(token)) {
-            return false
+            return null
         }
-        val dbToken = tokenRepository.findByToken(token) ?: return false
-        return !(dbToken.revoked || dbToken.expiredAt.isBefore(LocalDateTime.now()))
+        val dbToken = tokenRepository.findByToken(token) ?: return null
+        if (!(dbToken.revoked || dbToken.expiredAt.isBefore(LocalDateTime.now()))) {
+            return dbToken.userUsername
+        }
+        return null
     }
 
     fun revokeJwtToken(token: String): Boolean {

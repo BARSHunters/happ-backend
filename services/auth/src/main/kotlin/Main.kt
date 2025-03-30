@@ -8,6 +8,7 @@ import model.ErrorType
 import model.request.TokenDto
 import model.response.ErrorDto
 import model.response.MessageResponse
+import model.response.TokenValidationResponse
 import repository.TokenRepository
 import repository.UserRepository
 import service.UserService
@@ -25,6 +26,7 @@ fun afterStartup() {
 }
 
 fun receiveJwtToken(requestBody: String) {
+    println("Receive Jwt Token $requestBody")
     val request: TokenDto = try {
         Json.decodeFromString<TokenDto>(requestBody)
     } catch (e: Exception) {
@@ -36,16 +38,19 @@ fun receiveJwtToken(requestBody: String) {
         return
     }
     val token = request.token
-    if (userService.validateJwtToken(token)) {
-        val response = MessageResponse(request.id, "valid")
+    val username = userService.validateJwtToken(token)
+    if (username != null) {
+        val response = TokenValidationResponse(request.id, "valid", username)
         sendEvent("auth:response:JwtValidation", Json.encodeToString(response))
     } else {
-        val response = MessageResponse(request.id, "invalid")
+        val response = TokenValidationResponse(request.id, "invalid", "")
+        println("response = $response")
         sendEvent("auth:response:JwtValidation", Json.encodeToString(response))
     }
 }
 
 fun revokeJwtToken(requestBody: String) {
+    println("Revoke Jwt Token $requestBody")
     val request: TokenDto = try {
         Json.decodeFromString<TokenDto>(requestBody)
     } catch (e: Exception) {

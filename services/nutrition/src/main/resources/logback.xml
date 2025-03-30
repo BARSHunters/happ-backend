@@ -6,9 +6,9 @@
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </root>
 
     <!-- Custom Log Levels for Specific Packages -->
-    <logger name="com.clickhouse" level="INFO" />
+    <logger name="com.clickhouse" level="INFO"/>
 </configuration>

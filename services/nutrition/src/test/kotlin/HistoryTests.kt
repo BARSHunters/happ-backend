@@ -1,9 +1,9 @@
 import io.mockk.*
-import org.example.service.HistoryService
 import keydb.sendEvent
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.example.dto.*
+import org.example.service.HistoryService
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest

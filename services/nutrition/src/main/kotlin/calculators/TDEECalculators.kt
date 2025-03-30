@@ -36,9 +36,8 @@ enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Flo
         KatchMcArdle(
             user.weightKg.toUInt(),
             activityIndex,
-            user.bodyFatPercent ?:
-            user.preferredBodyFatCalculator?.calculator?.invoke(user)?.calculate()?.getOrNull() ?:
-            BodyFatCalculatorType.BMI.calculator(user).calculate().getOrElse { 0.0 }
+            user.bodyFatPercent ?: user.preferredBodyFatCalculator?.calculator?.invoke(user)?.calculate()?.getOrNull()
+            ?: BodyFatCalculatorType.BMI.calculator(user).calculate().getOrElse { 0.0 }
         )
     }),
     FAO({ user, activityIndex ->

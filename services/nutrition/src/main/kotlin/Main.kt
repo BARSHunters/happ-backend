@@ -13,8 +13,7 @@ import org.example.api.RationController
 fun afterStartup() {
     try {
         Database
-    }
-    catch(e: Exception) {
+    } catch (e: Exception) {
         System.err.println("Exception thrown while trying to connect to the database")
         System.err.println(e.message)
     }

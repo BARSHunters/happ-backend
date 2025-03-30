@@ -1,9 +1,9 @@
 package org.example
 
-import java.util.*
 import io.github.cdimascio.dotenv.dotenv
-import org.slf4j.LoggerFactory
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.util.*
 
 /**
  * Конфигурация приложения

@@ -2,9 +2,9 @@ package org.example.calculators
 
 import org.example.dto.UserDTO
 import org.example.model.Gender
-import kotlin.math.ln
 import java.time.LocalDate
 import java.time.Period
+import kotlin.math.ln
 
 /**
  * Известные калькуляторы процента жира

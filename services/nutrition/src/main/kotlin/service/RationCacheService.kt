@@ -41,7 +41,8 @@ object RationCacheService {
      */
     fun initUpdateQuery(request: UpdateRationRequestDTO): Int {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
+        val statement =
+            connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
         statement.setObject(1, request.id)
         statement.setString(2, request.login)
         statement.setString(3, request.type.name)
@@ -76,7 +77,8 @@ object RationCacheService {
      */
     fun saveActivity(queryId: UUID, activityIndex: Float): Int {
         val connection = Database.getPGConnection()
-        val statement = connection.prepareStatement("UPDATE nutrition.cache_ration SET activity_index = ? WHERE query_id = ?")
+        val statement =
+            connection.prepareStatement("UPDATE nutrition.cache_ration SET activity_index = ? WHERE query_id = ?")
         statement.setFloat(1, activityIndex)
         statement.setObject(2, queryId)
         val res = statement.executeUpdate()
@@ -101,9 +103,21 @@ object RationCacheService {
             RationCacheDTO(
                 resultSet.getObject("query_id", UUID::class.java),
                 resultSet.getString("login"),
-                try { Wish.valueOf(resultSet.getString("wish")) } catch (e: Exception) { null },
-                try { MealType.valueOf(resultSet.getString("meal_type")) } catch (e: Exception) { null },
-                try { resultSet.getFloat("activity_index") } catch (e: Exception) { null },
+                try {
+                    Wish.valueOf(resultSet.getString("wish"))
+                } catch (e: Exception) {
+                    null
+                },
+                try {
+                    MealType.valueOf(resultSet.getString("meal_type"))
+                } catch (e: Exception) {
+                    null
+                },
+                try {
+                    resultSet.getFloat("activity_index")
+                } catch (e: Exception) {
+                    null
+                },
             )
         } else {
             throw Exception("No rows with query_id=$queryId")

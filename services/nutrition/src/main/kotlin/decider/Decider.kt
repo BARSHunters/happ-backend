@@ -8,8 +8,8 @@ import org.example.service.DishService
 import org.example.service.DishType
 import org.example.service.HistoryService
 import kotlin.math.abs
-import kotlin.random.Random
 import kotlin.math.max
+import kotlin.random.Random
 
 /**
  * Пожелание пользователя об изменении/сохранении веса.

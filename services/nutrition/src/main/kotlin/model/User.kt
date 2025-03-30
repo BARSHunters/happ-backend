@@ -50,7 +50,8 @@ class User(
         Period.between(dto.birthDate, LocalDate.now()).years.toUInt(),
         dto.gender,
         activityIndex,
-        dto.preferredTDEECalculator?.calculator?.invoke(dto, activityIndex) ?: TDEECalculatorType.MIFFLIN.calculator(dto, activityIndex),
+        dto.preferredTDEECalculator?.calculator?.invoke(dto, activityIndex)
+            ?: TDEECalculatorType.MIFFLIN.calculator(dto, activityIndex),
         dto.preferredBodyFatCalculator?.calculator?.invoke(dto) ?: BodyFatCalculatorType.BMI.calculator(dto)
     )
 }

@@ -1,8 +1,8 @@
 package org.example
 
-import com.zaxxer.hikari.*
-import org.slf4j.LoggerFactory
+import com.zaxxer.hikari.HikariDataSource
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.sql.Connection
 
 enum class DB { PG, CH }
@@ -31,8 +31,11 @@ object Database {
         chDataSource.jdbcUrl = Config.getProperty("ch.jdbcUrl")
     }
 
-    fun getCHConnection(): Connection = chDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
-    fun getPGConnection(): Connection = pgDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
+    fun getCHConnection(): Connection =
+        chDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
+
+    fun getPGConnection(): Connection =
+        pgDataSource.connection ?: throw ExceptionInInitializerError("Database connection is null")
 
     /**
      * Запускает указанный sql скрипт из ресурсов приложения.
@@ -75,7 +78,7 @@ object Database {
                 it.executeUpdate()
             }
 
-            if (db == DB.PG)  conn.commit()
+            if (db == DB.PG) conn.commit()
             conn.close()
             logger.info("NEW migration $migrationFileName applied!")
         } catch (e: Exception) {
@@ -97,7 +100,7 @@ object Database {
         st.setString(1, migrationFileName)
 
         val res = st.executeQuery()
-        return (res.next() && res.getInt(1) >= 1). also {
+        return (res.next() && res.getInt(1) >= 1).also {
             st.close()
         }
     }

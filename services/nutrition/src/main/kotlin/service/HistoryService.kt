@@ -2,7 +2,9 @@ package org.example.service
 
 import org.example.DB
 import org.example.Database
-import org.example.dto.*
+import org.example.dto.DailyDishSetDTO
+import org.example.dto.HistoryFullDTO
+import org.example.dto.HistoryRow
 import java.time.LocalDate
 
 /**

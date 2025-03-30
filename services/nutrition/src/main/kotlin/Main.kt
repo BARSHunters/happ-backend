@@ -38,6 +38,7 @@ fun main(): Unit = runServiceListener(
 
         // История рационов
         "nutrition:request:CPFC" to HistoryController::getRationHistory,
+        "nutrition:request:ration_by_date" to HistoryController::getRationByDate,
     ),
     ::afterStartup
 )

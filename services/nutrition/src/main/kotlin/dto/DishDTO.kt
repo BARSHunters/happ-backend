@@ -17,7 +17,22 @@ data class DishDTO(
     // Совпадение id в CH и в MinIO - ответственность заполняющего скрипта.
     // Этот сервис доступа к MinIO иметь не должен, только узнать нужный Id из CH и кинуть его дальше.
     val recipeId: Long? = null, // Как и с фото.
-)
+) {
+    /**
+     * Рассчитывает параметры блюда с [новым весом][newWeight]
+     * @return Новый объект [DishDTO]
+     */
+    fun adjustWeight(newWeight: Double): DishDTO {
+        val factor = newWeight / this.weight.toDouble()
+        return this.copy(
+            weight = newWeight.toUInt(),
+            tdee = this.tdee * factor,
+            protein = this.protein * factor,
+            fat = this.fat * factor,
+            carbs = this.carbs * factor
+        )
+    }
+}
 
 /**
  * Представление дневного рациона

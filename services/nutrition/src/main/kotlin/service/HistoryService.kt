@@ -30,6 +30,8 @@ object HistoryService {
      * @return Значения КБЖУ по датам
      */
     fun getHistoryTDEEForUser(login: String, days: Int): Map<String, HistoryRow> {
+        if (days < 1) throw IllegalArgumentException("days must be greater than 0")
+
         val connection = Database.getPGConnection()
 
         // Под-запрос с GROUP BY нужен, так как может возникать несколько записей для одного дня (из-за обновления рациона).
@@ -41,7 +43,7 @@ object HistoryService {
                 | ORDER BY date;""".trimMargin(),
         )
         statement.setString(1, login)
-        statement.setInt(2, days)
+        statement.setInt(2, days - 1)
 
         val result = statement.executeQuery().use { rs ->
             buildMap {
@@ -134,5 +136,44 @@ object HistoryService {
         statement.executeUpdate()
         statement.close()
         connection.close()
+    }
+
+    /**
+     * Получает последний актуальный рацион за указанную дату.
+     *
+     * @return рацион в представлении, используемом при генерации. ([DailyDishSetDTO])
+     */
+    fun getFromHistoryRationByDate(login: String, date: Date): DailyDishSetDTO {
+        val connection = Database.getPGConnection()
+        val statement = connection.prepareStatement(
+            "SELECT * FROM history WHERE login = ? AND date = ? ORDER BY id DESC LIMIT 1"
+        )
+        statement.setString(1, login)
+        statement.setObject(2, date)
+
+        val result = statement.executeQuery().use { rs ->
+            {
+                if (rs.next()) {
+                    DailyDishSetDTO(
+                        DishService.getDishById(rs.getLong("breakfast"))
+                            .adjustWeight(rs.getInt("breakfast_weight").toDouble()),
+                        DishService.getDishById(rs.getLong("lunch"))
+                            .adjustWeight(rs.getInt("lunch_weight").toDouble()),
+                        DishService.getDishById(rs.getLong("dinner"))
+                            .adjustWeight(rs.getInt("dinner_weight").toDouble()),
+                        rs.getDouble("total_tdee"),
+                        rs.getDouble("total_protein"),
+                        rs.getDouble("total_fat"),
+                        rs.getDouble("total_carbs"),
+                    )
+                } else {
+                    throw Exception("No history found for this user or date")
+                }
+            }
+        }()
+
+        statement.close()
+        connection.close()
+        return result
     }
 }

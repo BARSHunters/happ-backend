@@ -138,7 +138,7 @@ object RationController {
             return
         }
 
-        val user = User(request.dto, cache.activityIndex)
+        val user = User(request.dto, cache.activityIndex ?: throw NullPointerException("activity index is null"))
 
         val dishSet: DailyDishSetDTO = if (cache.type != null) {
             Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type)

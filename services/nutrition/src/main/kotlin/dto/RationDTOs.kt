@@ -81,11 +81,11 @@ data class RationCacheDTO(
     val login: String,
     val wish: Wish?,
     val type: MealType?,
-    val activityIndex: Float,
+    val activityIndex: Float?,
 )
 
 /**
- * Представление ответа со сгенерированным рационом
+ * Представление ответа с рационом
  */
 data class RationResponseDTO(
     val id: UUID,

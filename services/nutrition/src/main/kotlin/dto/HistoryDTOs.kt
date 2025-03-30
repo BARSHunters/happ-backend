@@ -46,3 +46,12 @@ data class HistoryFullDTO(
     val totalFat: Double,
     val totalCarbs: Double,
 )
+
+/**
+ * Представление запроса на получение рациона за конкретную дату
+ */
+data class HistoryRequestRationByDateDTO(
+    val id: UUID,
+    val login: String,
+    val date: Date,
+)

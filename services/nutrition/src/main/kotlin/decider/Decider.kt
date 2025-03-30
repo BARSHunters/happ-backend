@@ -126,21 +126,6 @@ object Decider {
     }
 
     /**
-     * Рассчитывает параметры блюда с [новым весом][newWeight]
-     * @return Новый объект [DishDTO]
-     */
-    private fun DishDTO.adjustWeight(newWeight: Double): DishDTO {
-        val factor = newWeight / 100.0
-        return this.copy(
-            weight = newWeight.toUInt(),
-            tdee = this.tdee * factor,
-            protein = this.protein * factor,
-            fat = this.fat * factor,
-            carbs = this.carbs * factor
-        )
-    }
-
-    /**
      * Домножает веса блюд на указанный [scalingFactor]
      *
      * @param combo набор блюд для увеличения веса

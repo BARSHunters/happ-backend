@@ -46,8 +46,8 @@ class YMCA(
     private val waist: Double,
     private val height: Double
 ) : Calculator {
-    override fun calculate(): Double {
-        return (86.010 * ln(waist) - 70.041 * ln(height) + 36.76)
+    override fun calculate(): Result<Double> {
+        return Result.success((86.010 * ln(waist) - 70.041 * ln(height) + 36.76))
     }
 }
 
@@ -59,12 +59,12 @@ class USNavy(
     private val height: Double,
     private val hips: Double? = null
 ) : Calculator {
-    override fun calculate(): Double {
+    override fun calculate(): Result<Double> {
         return if (gender == Gender.MALE) {
-            86.010 * ln(waist - neck) - 70.041 * ln(height) + 36.76
+            Result.success(86.010 * ln(waist - neck) - 70.041 * ln(height) + 36.76)
         } else {
-            require(hips != null) { "Для женщин необходимо указать окружность бедер" }
-            163.205 * ln(waist + hips - neck) - 97.684 * ln(height) - 78.387
+            return if (hips != null) Result.success(163.205 * ln(waist + hips - neck) - 97.684 * ln(height) - 78.387)
+            else Result.failure(IllegalArgumentException("Для женщин необходимо указать окружность бедер"))
         }
     }
 }
@@ -75,13 +75,13 @@ class JacksonPollock(
     private val sumOfSkinfolds: Double,
     private val age: Double
 ) : Calculator {
-    override fun calculate(): Double {
+    override fun calculate(): Result<Double> {
         val bodyDensity = if (gender == Gender.MALE) {
             1.10938 - (0.0008267 * sumOfSkinfolds) + (0.0000016 * sumOfSkinfolds * sumOfSkinfolds) - (0.0002574 * age)
         } else {
             1.0994921 - (0.0009929 * sumOfSkinfolds) + (0.0000023 * sumOfSkinfolds * sumOfSkinfolds) - (0.0001392 * age)
         }
-        return (495 / bodyDensity) - 450
+        return Result.success((495 / bodyDensity) - 450)
     }
 }
 
@@ -92,9 +92,9 @@ class BMI(
     private val age: Double,
     private val gender: Gender
 ) : Calculator {
-    override fun calculate(): Double {
+    override fun calculate(): Result<Double> {
         val bmi = weight / (height * height)
         val sexFactor = if (gender == Gender.MALE) 10.8 else 0.0
-        return (1.20 * bmi) + (0.23 * age) - sexFactor - 5.4
+        return Result.success((1.20 * bmi) + (0.23 * age) - sexFactor - 5.4)
     }
 }

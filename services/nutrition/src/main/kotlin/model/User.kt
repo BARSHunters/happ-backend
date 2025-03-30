@@ -31,14 +31,14 @@ class User(
     /**
      * @return Стандартное количество калорий для человека с такими параметрами, достаточное для подержания веса.
      */
-    fun calculateTDEE(): Double {
+    fun calculateTDEE(): Result<Double> {
         return tdeeCalculator.calculate()
     }
 
     /**
      * @return Предполагаемый процент подкожного жира для человека с такими параметрами.
      */
-    fun calculateBodyFat(): Double {
+    fun calculateBodyFat(): Result<Double> {
         return bodyFatCalculator.calculate()
     }
 
@@ -49,7 +49,7 @@ class User(
         Period.between(dto.birthDate, LocalDate.now()).years.toUInt(),
         dto.gender,
         activityIndex,
-        dto.preferredTDEECalculator?.calculator?.invoke(dto, activityIndex) ?: TDEECalculatorType.FAO.calculator(dto, activityIndex),
+        dto.preferredTDEECalculator?.calculator?.invoke(dto, activityIndex) ?: TDEECalculatorType.MIFFLIN.calculator(dto, activityIndex),
         dto.preferredBodyFatCalculator?.calculator?.invoke(dto) ?: BodyFatCalculatorType.BMI.calculator(dto)
     )
 }

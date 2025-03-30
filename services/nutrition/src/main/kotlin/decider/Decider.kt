@@ -39,12 +39,16 @@ enum class Wish(val tdeeIndex: Double, val proteinIndex: Double, val fatIndex: D
 object Decider {
     /** Количество блюд с типом ANY. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_ANY = DishType.ANY.getTypeCount()
+
     /** Количество блюд и для обеда и для ужина. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_LD = DishType.LUNCH_OR_DINNER.getTypeCount()
+
     /** Количество завтраков. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_BREAKFAST = DishType.BREAKFAST.getTypeCount()
+
     /** Количество обедов. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_LUNCH = DishType.LUNCH.getTypeCount()
+
     /** Количество ужинов. (в таблице в clickhouse-е на момент инициализации) */
     private val TOTAL_DINNER = DishType.DINNER.getTypeCount()
 
@@ -55,8 +59,8 @@ object Decider {
      * @param user Данные о пользователе, участвующие в расчёте. Также содержит свой [калькулятор][User.calculateTDEE]
      * @param wish Пользовательское [пожелание][Wish] насчёт веса.
      */
-    fun decide(user: User, wish: Wish): DailyDishSetDTO {
-        val baseTDEE = user.calculateTDEE()
+    fun decide(user: User, wish: Wish): Result<DailyDishSetDTO> {
+        val baseTDEE = user.calculateTDEE().getOrElse { return Result.failure(it) }
 
         val targetTDEE = baseTDEE * wish.tdeeIndex
         val targetProtein = targetTDEE * wish.proteinIndex / 4
@@ -109,7 +113,8 @@ object Decider {
             for (lunch in lunches) {
                 for (dinner in dinners) {
                     val combo = Triple(breakfast, lunch, dinner)
-                    val scalingFactor = targetTDEE / combo.toList().sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
+                    val scalingFactor =
+                        targetTDEE / combo.toList().sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
                     val adjustedCombo = adjustCombo(combo, scalingFactor)
 
                     val error = calculateError(adjustedCombo, targetTDEE, targetProtein, targetFat, targetCarbs)
@@ -121,8 +126,8 @@ object Decider {
             }
         }
 
-        return bestSet?.let { DailyDishSetDTO(it.first, it.second, it.third) }
-            ?: throw IllegalStateException("Не удалось подобрать блюда")
+        return if (bestSet != null) Result.success(bestSet.let { DailyDishSetDTO(it.first, it.second, it.third) })
+        else Result.failure(IllegalStateException("Couldn't generate ration. Result is empty."))
     }
 
     /**
@@ -132,7 +137,10 @@ object Decider {
      * @param scalingFactor множитель
      * @see [DishDTO.adjustWeight]
      */
-    private fun adjustCombo(combo: Triple<DishDTO, DishDTO, DishDTO>, scalingFactor: Double): Triple<DishDTO, DishDTO, DishDTO> {
+    private fun adjustCombo(
+        combo: Triple<DishDTO, DishDTO, DishDTO>,
+        scalingFactor: Double
+    ): Triple<DishDTO, DishDTO, DishDTO> {
         val breakfast = combo.first
         val lunch = combo.second
         val dinner = combo.third
@@ -180,8 +188,8 @@ object Decider {
      * @param wish Пользовательское [пожелание][Wish] насчёт веса.
      * @param mealType Приём пищи, блюдо на который нужно поменять.
      */
-    fun swap(user: User, wish: Wish, mealType: MealType): DailyDishSetDTO {
-        val baseTDEE = user.calculateTDEE()
+    fun swap(user: User, wish: Wish, mealType: MealType): Result<DailyDishSetDTO> {
+        val baseTDEE = user.calculateTDEE().getOrElse { return Result.failure(it) }
 
         val targetTDEE = baseTDEE * wish.tdeeIndex
         val targetProtein = targetTDEE * wish.proteinIndex / 4
@@ -234,16 +242,19 @@ object Decider {
                 MealType.BREAKFAST -> {
                     breakfast = meal
                 }
+
                 MealType.LUNCH -> {
                     lunch = meal
                 }
+
                 else -> {
                     dinner = meal
                 }
             }
 
             val combo = Triple(breakfast, lunch, dinner)
-            val scalingFactor = targetTDEE / combo.toList().sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
+            val scalingFactor =
+                targetTDEE / combo.toList().sumOf { it.tdee } // Во сколько больше раз надо взять каждого блюда
             val adjustedCombo = adjustCombo(combo, scalingFactor)
 
             val error = calculateError(adjustedCombo, targetTDEE, targetProtein, targetFat, targetCarbs)
@@ -253,7 +264,7 @@ object Decider {
             }
         }
 
-        return bestSet?.let { DailyDishSetDTO(it.first, it.second, it.third) }
-            ?: throw IllegalStateException("Не удалось подобрать блюда")
+        return if (bestSet != null) Result.success(bestSet.let { DailyDishSetDTO(it.first, it.second, it.third) })
+        else Result.failure(IllegalStateException("Couldn't generate ration. Result is empty."))
     }
 }

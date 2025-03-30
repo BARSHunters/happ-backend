@@ -141,9 +141,15 @@ object RationController {
         val user = User(request.dto, cache.activityIndex ?: throw NullPointerException("activity index is null"))
 
         val dishSet: DailyDishSetDTO = if (cache.type != null) {
-            Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type)
+            Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type).getOrElse {
+                sendEvent("error", Json.encodeToString(ErrorDTO(request.id, it.message ?: "Couldn't generate ration")))
+                return
+            }
         } else {
-            Decider.decide(user, cache.wish ?: Wish.KEEP)
+            Decider.decide(user, cache.wish ?: Wish.KEEP).getOrElse {
+                sendEvent("error", Json.encodeToString(ErrorDTO(request.id, it.message ?: "Couldn't generate ration")))
+                return
+            }
         }
 
         RationCacheService.clearQuery(request.id)

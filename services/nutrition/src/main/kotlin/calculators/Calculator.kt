@@ -6,5 +6,5 @@ package org.example.calculators
  * В своей сути паттерн команда
  */
 interface Calculator {
-    fun calculate(): Double
+    fun calculate(): Result<Double>
 }

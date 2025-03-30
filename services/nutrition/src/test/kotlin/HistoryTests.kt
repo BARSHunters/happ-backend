@@ -20,6 +20,7 @@ class HistoryTests {
     fun setUp() {
         clearAllMocks()
         mockkStatic(::sendEvent)
+        System.setProperty("test", "true")
     }
 
     companion object {

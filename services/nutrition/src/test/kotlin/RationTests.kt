@@ -25,6 +25,7 @@ class RationTests {
     fun setUp() {
         clearAllMocks()
         mockkStatic(::sendEvent)
+        System.setProperty("test", "true")
     }
 
     @Test
@@ -32,7 +33,7 @@ class RationTests {
         val testLogin = "test_user"
         val request = RationRequestDTO(UUID.randomUUID(), testLogin)
 
-        every { rationCacheService.initQuery(request) } just Runs
+        every { rationCacheService.initQuery(request) } just Awaits
 
         val requestJSON = Json.encodeToString(request)
         rationController.requestTodayRation(requestJSON)
@@ -51,7 +52,7 @@ class RationTests {
         every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
             request.id, testLogin, null, null, null
         )
-        every { rationCacheService.saveWish(request.id, request.wish) } just Runs
+        every { rationCacheService.saveWish(request.id, request.wish) } just Awaits
 
         val requestJSON = Json.encodeToString(request)
         rationController.afterFetchFromWeightHistoryService(requestJSON)
@@ -72,7 +73,7 @@ class RationTests {
         every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
             request.id, testLogin, Wish.REMAIN, null, null
         )
-        every { rationCacheService.saveActivity(request.id, request.activityIndex) } just Runs
+        every { rationCacheService.saveActivity(request.id, request.activityIndex) } just Awaits
 
         val requestJSON = Json.encodeToString(request)
         rationController.afterFetchFromActivityService(requestJSON)
@@ -118,8 +119,8 @@ class RationTests {
         every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
             request.id, testLogin, Wish.REMAIN, null, 1.2f
         )
-        every { decider.decide(user, Wish.REMAIN) } returns response
-        every { rationCacheService.clearQuery(request.id) } just Runs
+        every { decider.decide(user, Wish.REMAIN) } returns Result.success(response)
+        every { rationCacheService.clearQuery(request.id) } just Awaits
         every { historyService.addHistory(testLogin, response) } just Runs
 
         val requestJSON = Json.encodeToString(request)

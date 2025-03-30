@@ -34,6 +34,11 @@ object Config {
 
     init {
         var profile = System.getenv("PROFILE") ?: ""
+
+        if (System.getProperty("test") == "true") {
+            profile = "test"
+        }
+
         logger.info("Using '$profile'")
         profile = if (profile.isNotEmpty()) ("-$profile") else ""
         profile = profile.lowercase()

@@ -25,6 +25,7 @@ class RationUpdateTests {
     fun setUp() {
         clearAllMocks()
         mockkStatic(::sendEvent)
+        System.setProperty("test", "true")
     }
 
     @Test
@@ -33,7 +34,7 @@ class RationUpdateTests {
         val request = UpdateRationRequestDTO(UUID.randomUUID(), testLogin, MealType.BREAKFAST)
         val nextReq = RationRequestDTO(request.id, request.login)
 
-        every { rationCacheService.initQuery(nextReq) } just Runs
+        every { rationCacheService.initQuery(nextReq) } just Awaits
 
         val requestJSON = Json.encodeToString(request)
         rationController.requestTodayRation(requestJSON)
@@ -82,8 +83,8 @@ class RationUpdateTests {
         every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
             request.id, testLogin, Wish.REMAIN, MealType.BREAKFAST, 1.2f // тут
         )
-        every { decider.swap(user, Wish.REMAIN, MealType.BREAKFAST) } returns response // тут
-        every { rationCacheService.clearQuery(request.id) } just Runs
+        every { decider.swap(user, Wish.REMAIN, MealType.BREAKFAST) } returns Result.success(response) // тут
+        every { rationCacheService.clearQuery(request.id) } just Awaits
         every { historyService.addHistory(testLogin, response) } just Runs
 
         val requestJSON = Json.encodeToString(request)

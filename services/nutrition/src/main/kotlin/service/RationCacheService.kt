@@ -89,28 +89,25 @@ object RationCacheService {
      */
     fun getByQueryId(queryId: UUID): RationCacheDTO {
         val connection = Database.getPGConnection()
-        statement.setString(1, queryId.toString())
         val statement = connection.prepareStatement("SELECT * FROM nutrition.cache_ration WHERE query_id = ?")
+        statement.setObject(1, queryId)
 
-        val result = statement.executeQuery().use { rs ->
-            {
-                if (rs.next()) {
-                    RationCacheDTO(
-                        rs.getObject("query_id", UUID::class.java),
-                        rs.getString("login"),
-                        rs.getObject("wish", Wish::class.java),
-                        rs.getObject("meal_type", MealType::class.java),
-                        rs.getFloat("activityIndex"),
-                    )
-                } else {
-                    throw Exception("No rows with query_id=$queryId")
-                }
-            }
-        }()
-
-        statement.close()
-        connection.close()
-        return result
+        val resultSet = statement.executeQuery()
+        return if (resultSet.next()) {
+            RationCacheDTO(
+                resultSet.getObject("query_id", UUID::class.java),
+                resultSet.getString("login"),
+                try { Wish.valueOf(resultSet.getString("wish")) } catch (e: Exception) { null },
+                try { MealType.valueOf(resultSet.getString("meal_type")) } catch (e: Exception) { null },
+                try { resultSet.getFloat("activity_index") } catch (e: Exception) { null },
+            )
+        } else {
+            throw Exception("No rows with query_id=$queryId")
+        }.also {
+            resultSet.close()
+            statement.close()
+            connection.close()
+        }
     }
 
 

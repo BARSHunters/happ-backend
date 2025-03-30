@@ -17,7 +17,6 @@ object Database {
     private var pgDataSource: HikariDataSource = HikariDataSource()
 
     init {
-        pgDataSource.driverClassName = "org.postgresql.Driver"
         pgDataSource.maximumPoolSize = Config.getProperty("pg.maxPoolSize").toInt()
         pgDataSource.username = Config.getProperty("pg.user")
         pgDataSource.password = Config.getProperty("pg.password")

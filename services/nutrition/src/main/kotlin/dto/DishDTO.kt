@@ -1,8 +1,11 @@
 package org.example.dto
 
+import kotlinx.serialization.Serializable
+
 /**
  * Представление одного блюда в рационе
  */
+@Serializable
 data class DishDTO(
     val name: String,
 
@@ -37,6 +40,7 @@ data class DishDTO(
 /**
  * Представление дневного рациона
  */
+@Serializable
 data class DailyDishSetDTO(
     val breakfast: DishDTO,
     val lunch: DishDTO,

@@ -1,12 +1,17 @@
 package org.example.dto
 
+import kotlinx.serialization.Serializable
+import org.example.utils.LocalDateSerializer
+import org.example.utils.UUIDSerializer
 import java.time.LocalDate
 import java.util.*
 
 /**
  * Представление запроса на получение истории КБЖУ рационов
  */
+@Serializable
 data class HistoryRequestDTO(
+    @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     val login: String,
     val days: Int,
@@ -15,6 +20,7 @@ data class HistoryRequestDTO(
 /**
  * Представление строки таблицы истории в запросе на получение истории КБЖУ рационов
  */
+@Serializable
 data class HistoryRow(
     val calories: Double,
     val protein: Double,
@@ -25,7 +31,9 @@ data class HistoryRow(
 /**
  * Представление ответа с историей КБЖУ рационов
  */
+@Serializable
 data class HistoryResponseDTO(
+    @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     val rations: Map<String, HistoryRow>
 )
@@ -51,8 +59,11 @@ data class HistoryFullDTO(
 /**
  * Представление запроса на получение рациона за конкретную дату
  */
+@Serializable
 data class HistoryRequestRationByDateDTO(
+    @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     val login: String,
+    @Serializable(with = LocalDateSerializer::class)
     val date: LocalDate,
 )

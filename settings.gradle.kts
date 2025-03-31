@@ -24,7 +24,7 @@ include(":weight_history")
 
 project(":api_gw").projectDir = File("./services/api_gw")
 project(":echo").projectDir = File("./services/echo")
-project(":auth").projectDir = File("./services/echo")
+project(":auth").projectDir = File("./services/auth")
 project(":userData").projectDir = File("./services/userData")
 project(":activity").projectDir = File("./services/activity")
 project(":nutrition").projectDir = File("./services/nutrition")

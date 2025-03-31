@@ -1,30 +1,37 @@
 plugins {
     kotlin("jvm") version "2.1.10"
-    kotlin("plugin.serialization") version "2.1.10"
-    application
+    kotlin("plugin.serialization") version "2.0.10"
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
 }
 
-group = "happ-backend"
-version = "1.1"
+group = "org.example"
+version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
-application {
-    mainClass.set("WeightHistoryServiceKt")
-}
-
 dependencies {
     implementation(project(":shared"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testImplementation("io.mockk:mockk:1.13.8")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+
     implementation("org.postgresql:postgresql:42.7.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+    implementation("com.clickhouse:clickhouse-jdbc:0.8.2")
+    implementation("com.zaxxer:HikariCP:6.2.1")
+
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
+    implementation("ch.qos.logback:logback-classic:1.4.14")
+
+    testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.17")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+}
+
+configurations {
+    all {
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
 }
 
 tasks.test {

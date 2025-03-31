@@ -50,9 +50,11 @@ class UserDataService(private val userRepository: UserRepository) {
 
     fun getUserData(username: String): UserDataResponse? {
         val userData = userRepository.findByUsername(username) ?: return null
-        val userDataResponse = UserDataResponse(userData.username,
+        val userDataResponse = UserDataResponse(
+            userData.username,
             userData.name, calculateAge(userData.birthDate), userData.birthDate,
-            userData.gender, userData.heightCm, userData.weightKg, userData.weightDesire)
+            userData.gender, userData.heightCm, userData.weightKg, userData.weightDesire
+        )
         return userDataResponse
     }
 

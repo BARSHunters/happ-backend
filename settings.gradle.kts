@@ -13,13 +13,13 @@ develocity {
 rootProject.name = "happ-backend"
 
 include("shared")
-
 include(":auth")
 include(":userData")
-include(":test-service")
+include(":activity")
 include(":weight_history")
-
+include(":nutrition")
 project(":auth").projectDir = File("./services/auth")
 project(":userData").projectDir = File("./services/userData")
-project(":test-service").projectDir = File("./services/test-service")
+project(":activity").projectDir = File("./services/activity")
 project(":weight_history").projectDir = File("./services/weight_history")
+project(":nutrition").projectDir = File("./services/nutrition")

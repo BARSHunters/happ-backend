@@ -1,5 +1,4 @@
 .gradle
-gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -19,7 +18,7 @@ out/
 
 ### Kotlin ###
 .kotlin
-src/main/resources/.env
+
 ### Eclipse ###
 .apt_generated
 .classpath
@@ -44,6 +43,3 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-
-### ENV ###
-.env

@@ -22,6 +22,7 @@ enum class Gender {
     MALE,
     FEMALE
 }
+
 @Suppress("unused")
 enum class WeightDesire {
     LOSS,

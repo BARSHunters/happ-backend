@@ -22,7 +22,7 @@ class SocialService(
             request.senderUsername,
             request.receiverUsername
         )
-        
+
         if (existingFriendship != null) {
             return false
         }
@@ -92,4 +92,4 @@ class SocialService(
         val friends = friendshipRepository.getFriends(username)
         return friends
     }
-} 
+}

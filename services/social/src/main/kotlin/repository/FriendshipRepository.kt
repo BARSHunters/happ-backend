@@ -68,12 +68,12 @@ class FriendshipRepository {
         return SocialDatabase.getConnection().use { connection ->
             val statement = connection.prepareStatement(
                 "SELECT CASE " +
-                "WHEN sender_username = ? THEN receiver_username " +
-                "ELSE sender_username " +
-                "END as friend_username " +
-                "FROM friendships " +
-                "WHERE (sender_username = ? OR receiver_username = ?) " +
-                "AND status = ?;"
+                        "WHEN sender_username = ? THEN receiver_username " +
+                        "ELSE sender_username " +
+                        "END as friend_username " +
+                        "FROM friendships " +
+                        "WHERE (sender_username = ? OR receiver_username = ?) " +
+                        "AND status = ?;"
             )
             statement.setString(1, username)
             statement.setString(2, username)

@@ -41,7 +41,7 @@ class UserProfileService {
             println("Received user data response: $responseBody")
             val response: ResponseWrapper<UserData> = try {
                 Json.decodeFromString(responseBody)
-            } catch(e: Exception) {
+            } catch (e: Exception) {
                 e.printStackTrace()
                 val errorMessage = "Invalid JSON format"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)

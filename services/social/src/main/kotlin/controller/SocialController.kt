@@ -5,8 +5,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import model.ErrorType
-import model.request.RequestWrapper
 import model.request.FriendshipRequestDto
+import model.request.RequestWrapper
 import model.response.*
 import service.SocialService
 import java.util.*

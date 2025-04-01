@@ -65,7 +65,12 @@ class SocialServiceTest {
             every { status } returns FriendshipStatus.PENDING
         }
 
-        every { friendshipRepository.findFriendship(request.senderUsername, request.receiverUsername) } returns mockFriendship
+        every {
+            friendshipRepository.findFriendship(
+                request.senderUsername,
+                request.receiverUsername
+            )
+        } returns mockFriendship
         every { friendshipRepository.updateFriendshipStatus(friendshipId, FriendshipStatus.ACCEPTED) } returns true
 
         // Act

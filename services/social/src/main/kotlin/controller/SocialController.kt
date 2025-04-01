@@ -28,8 +28,11 @@ class SocialController(private val socialService: SocialService) {
         try {
             val success = socialService.proposeFriendship(request.id, request.dto)
             if (success) {
-                val response = SocialResponse("Friend request sent successfully")
-                sendResponse("social:response:ProposeFriendship", request.id, response)
+                val notification = Notification(
+                    NotificationType.FRIEND_REQUEST, request.dto.receiverUsername,
+                    NotificationPayload.FriendRequestPayload(friendName = request.dto.senderUsername)
+                )
+                sendEvent("notify:request:SendNotification", Json.encodeToString(notification))
             } else {
                 val errorMessage = "Failed to send friend request"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
@@ -57,10 +60,7 @@ class SocialController(private val socialService: SocialService) {
 
         try {
             val success = socialService.respondToFriendship(request.id, request.dto)
-            if (success) {
-                val response = SocialResponse("Friend request ${request.dto.response}ed successfully")
-                sendResponse("social:response:RespondToFriendship", request.id, response)
-            } else {
+            if (!success) {
                 val errorMessage = "Failed to ${request.dto.response} friend request"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
                 sendError(request.id, error)
@@ -120,12 +120,6 @@ class SocialController(private val socialService: SocialService) {
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
             sendError(request.id, error)
         }
-    }
-
-    private fun sendResponse(channel: String, id: UUID, response: SocialResponse) {
-        val responseWrapper = ResponseWrapper(id = id, dto = response)
-        val responseJson = Json.encodeToString(responseWrapper)
-        sendEvent(channel, responseJson)
     }
 
     private fun sendError(id: UUID, dto: ErrorDto) {

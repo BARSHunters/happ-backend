@@ -10,15 +10,15 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import utils.Gender
 import utils.LocalDateSerializer
+import utils.UUIDSerializer
+import utils.WeightDesire
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.Timestamp
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import utils.UUIDSerializer
-import utils.WeightDesire
-import java.time.LocalDate
 
 /**
  * Оболочка для поддержки запросов с UUID (Слава)
@@ -27,7 +27,7 @@ import java.time.LocalDate
 data class RequestWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val dto: T
+    val dto: T,
 )
 
 /**
@@ -37,7 +37,7 @@ data class RequestWrapper<T>(
 data class ResponseWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val dto: T
+    val dto: T,
 )
 
 /**
@@ -91,7 +91,7 @@ data class UserDataResponse(
     val gender: Gender,
     val height: Int,
     val weight: Float,
-    val weightDesire: WeightDesire
+    val weightDesire: WeightDesire,
 )
 
 @Serializable
@@ -123,7 +123,7 @@ data class RationRequestDTO(
 data class ActivityResponseDTO(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val activityIndex: Float
+    val activityIndex: Float,
 )
 
 /**
@@ -177,7 +177,10 @@ class ActivityService(
                     calories = it.caloriesBurned,
                 )
             }
-        sendEvent("activity:response:CaloriesBurned", Json.encodeToString(ResponseWrapper(requestWrapper.id,ActivityResponse(userId, records))))
+        sendEvent(
+            "activity:response:CaloriesBurned",
+            Json.encodeToString(ResponseWrapper(requestWrapper.id, ActivityResponse(userId, records))),
+        )
     }
 
     /**
@@ -210,7 +213,7 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestAddTraining(request.userId, request.jsonWorkout, request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
+            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
     }
 
@@ -228,7 +231,7 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestGetSomeTraining(userId = request.userId, trainingDate = request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
+            sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
     }
 
@@ -245,7 +248,7 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestGetAllTraining(request.userId)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetAllTrainings", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
+            sendEvent("activity:response:GetAllTrainings", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
     }
 
@@ -259,9 +262,12 @@ class ActivityService(
     internal fun handleNutritionActivityIndexRequest(message: String) {
         try {
             val request = Json.decodeFromString<RationRequestDTO>(message)
-            val met:Double = fetchFromDatabase(request.login).map { it.met }[0]
+            val met: Double = fetchFromDatabase(request.login).map { it.met }[0]
             val activityIndex = 1 + 0.05 * met
-            sendEvent("activity:response:ActivityIndex", Json.encodeToString(ActivityResponseDTO(UUID.randomUUID(),activityIndex.toFloat())))
+            sendEvent(
+                "activity:response:ActivityIndex",
+                Json.encodeToString(ActivityResponseDTO(UUID.randomUUID(), activityIndex.toFloat())),
+            )
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)
         }
@@ -405,7 +411,7 @@ class ActivityService(
         try {
             userDataReceived = CompletableDeferred()
             userDataUUID = UUID.randomUUID()
-            sendEvent("user_data:request:UserData", Json.encodeToString(GetterDto(userDataUUID,userId)))
+            sendEvent("user_data:request:UserData", Json.encodeToString(GetterDto(userDataUUID, userId)))
             userDataReceived.await()
         } catch (e: Exception) {
             println("Failed to send event: ${e.message}")
@@ -482,8 +488,8 @@ class ActivityService(
                     met = met,
                     recoveryTime = recoveryTime,
                 )
-            sendEvent("achievement:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),trainingData)))
-            sendEvent("notify:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),trainingData)))
+            sendEvent("achievement:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), trainingData)))
+            sendEvent("notify:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), trainingData)))
         } catch (e: Exception) {
             println("Failed to send training data: ${e.message}")
             throw RuntimeException("Failed to send training data to Achievement and Notify services", e)

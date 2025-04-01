@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.Gender
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -21,9 +22,9 @@ class ActivityServiceTest {
 
         // Мокируем fetchUserData, чтобы он возвращал фиктивные данные
         coEvery { activityService.fetchUserData() } answers {
-            activityService.weight = 70.0
+            activityService.weight = 70.0F
             activityService.age = 30
-            activityService.gender = "male"
+            activityService.gender = Gender.MALE
         }
 
         // Мокируем вызов внешнего сервиса (делаем его пустым)
@@ -65,9 +66,9 @@ class ActivityServiceTest {
 
     @Test
     fun testCalculateCalories() {
-        activityService.weight = 70.0
+        activityService.weight = 70.0F
         activityService.age = 30
-        activityService.gender = "male"
+        activityService.gender = Gender.MALE
         activityService.avgHeartRate = 120.0
         activityService.trainingDuration = 3600
 
@@ -75,9 +76,9 @@ class ActivityServiceTest {
         // Реальный ответ: 34914,23518...
         assertEquals(34914.235, activityService.caloriesBurned, 0.001)
 
-        activityService.weight = 58.5
+        activityService.weight = 58.5F
         activityService.age = 25
-        activityService.gender = "female"
+        activityService.gender = Gender.FEMALE
         activityService.avgHeartRate = 124.0
         activityService.trainingDuration = 2000
 
@@ -151,9 +152,8 @@ class ActivityServiceTest {
 
     @Test
     fun testInvalidUserData() {
-        activityService.weight = -1.0
+        activityService.weight = -1.0F
         activityService.age = 0
-        activityService.gender = "unknown"
 
         assertThrows(IllegalArgumentException::class.java) {
             activityService.calculateCalories()

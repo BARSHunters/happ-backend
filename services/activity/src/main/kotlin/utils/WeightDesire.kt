@@ -4,5 +4,5 @@ package utils
 enum class WeightDesire {
     LOSS,
     REMAIN,
-    GAIN
+    GAIN,
 }

@@ -7,16 +7,16 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import utils.Gender
+import utils.LocalDateSerializer
+import utils.UUIDSerializer
+import utils.WeightDesire
 import java.sql.DriverManager
 import java.sql.SQLException
-import java.time.LocalDateTime
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import utils.UUIDSerializer
-import utils.LocalDateSerializer
-import utils.Gender
-import utils.WeightDesire
 
 /**
  * Оболочка для поддержки запросов с UUID (Слава)
@@ -25,7 +25,7 @@ import utils.WeightDesire
 data class RequestWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val dto: T
+    val dto: T,
 )
 
 /**
@@ -35,7 +35,7 @@ data class RequestWrapper<T>(
 data class ResponseWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val dto: T
+    val dto: T,
 )
 
 /**
@@ -101,7 +101,7 @@ data class UserDataResponse(
     val gender: Gender,
     val height: Int,
     val weight: Float,
-    val weightDesire: WeightDesire
+    val weightDesire: WeightDesire,
 )
 
 /**
@@ -112,7 +112,7 @@ data class UserDataResponse(
 @Serializable
 data class NewWeightResponse(
     val username: String,
-    val weightKg: Float
+    val weightKg: Float,
 )
 
 /**
@@ -132,7 +132,7 @@ data class RationRequestDTO(
 data class WishResponseDTO(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val wish: WeightDesire
+    val wish: WeightDesire,
 )
 
 /**
@@ -155,7 +155,7 @@ data class HistoryRequestDTO(
 data class HistoryResponseDTO(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
-    val rations: Map<String, HistoryRow>
+    val rations: Map<String, HistoryRow>,
 )
 
 /**
@@ -213,9 +213,9 @@ class WeightHistoryService(
     internal var userDataReceived = CompletableDeferred<Unit>()
     internal var activityDataReceived = CompletableDeferred<Unit>()
     internal var nutritionDataReceived = CompletableDeferred<Unit>()
-    internal var activityUUID:UUID = UUID.randomUUID()
-    internal var userDataUUID:UUID = UUID.randomUUID()
-    internal var nutritionUUID:UUID = UUID.randomUUID()
+    internal var activityUUID: UUID = UUID.randomUUID()
+    internal var userDataUUID: UUID = UUID.randomUUID()
+    internal var nutritionUUID: UUID = UUID.randomUUID()
 
     /**
      * Обработчик запроса от NutritionService. Затем отправляет ответ.
@@ -228,7 +228,7 @@ class WeightHistoryService(
         try {
             val request = Json.decodeFromString<RationRequestDTO>(message)
             val wish = fetchWeightControlWishFromDB(request.login)
-            sendEvent("weight_history:response:WeightControlWish", Json.encodeToString(WishResponseDTO(UUID.randomUUID(),wish)))
+            sendEvent("weight_history:response:WeightControlWish", Json.encodeToString(WishResponseDTO(UUID.randomUUID(), wish)))
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)
         }
@@ -331,7 +331,7 @@ class WeightHistoryService(
             val request = requestWrapper.dto
             val result = processRequest(request.username, request.weightControlWish)
             println("Result of request from API Gateway: $result")
-            sendEvent("weight_history:response:WeightHistoryAndPrediction", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
+            sendEvent("weight_history:response:WeightHistoryAndPrediction", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
     }
 
@@ -532,7 +532,7 @@ class WeightHistoryService(
         try {
             activityDataReceived = CompletableDeferred()
             activityUUID = UUID.randomUUID()
-            sendEvent("activity:request:caloriesBurned", Json.encodeToString(RequestWrapper(activityUUID,username)))
+            sendEvent("activity:request:caloriesBurned", Json.encodeToString(RequestWrapper(activityUUID, username)))
             println("Activity data requested for user: $username")
             activityDataReceived.await()
         } catch (e: Exception) {
@@ -570,7 +570,7 @@ class WeightHistoryService(
         try {
             nutritionDataReceived = CompletableDeferred()
             nutritionUUID = UUID.randomUUID()
-            sendEvent("nutrition:request:CPFC", Json.encodeToString(HistoryRequestDTO(nutritionUUID,username)))
+            sendEvent("nutrition:request:CPFC", Json.encodeToString(HistoryRequestDTO(nutritionUUID, username)))
             println("Nutrition data requested for user: $username")
             nutritionDataReceived.await()
         } catch (e: Exception) {

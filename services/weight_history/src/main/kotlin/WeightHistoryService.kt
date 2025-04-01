@@ -116,7 +116,7 @@ data class NewWeightResponse(
 )
 
 /**
- * Представление запроса на генерацию рациона
+ * Представление запроса на значение пожелания по весу от Nutrition
  */
 @Serializable
 data class RationRequestDTO(
@@ -143,6 +143,7 @@ data class HistoryRequestDTO(
     @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     val login: String,
+    val days: Int = 30,
 )
 
 /**

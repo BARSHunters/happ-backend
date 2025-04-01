@@ -8,11 +8,52 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import utils.Gender
+import utils.LocalDateSerializer
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
+import utils.UUIDSerializer
+import utils.WeightDesire
+import java.time.LocalDate
+
+/**
+ * Оболочка для поддержки запросов с UUID (Слава)
+ */
+@Serializable
+data class RequestWrapper<T>(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val dto: T
+)
+
+/**
+ * Оболочка для поддержки ответов с UUID (Слава)
+ */
+@Serializable
+data class ResponseWrapper<T>(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val dto: T
+)
+
+/**
+ * Оболочка для поддержки get-запросов по username (Слава)
+ */
+@Serializable
+data class GetterDto(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val username: String,
+)
+
+/**
+ * Оболочка для общения с API Gateway (Кирилл А.)
+ */
+data class UUIDWrapper<T>(val uuid: UUID, val dto: T)
 
 @Serializable
 data class HeartRateEntry(val timestamp: Long, val heartRate: Int)
@@ -32,12 +73,25 @@ data class ActivityRecord(
     val calories: Double,
 )
 
+/**
+ * Ответ от сервиса пользовательских данных.
+ * @property username Идентификатор пользователя.
+ * @property weight Вес пользователя.
+ * @property age Возраст пользователя.
+ * @property gender Пол пользователя.
+* Остальные - не используются
+*/
 @Serializable
 data class UserDataResponse(
-    val userId: String,
-    val weight: Double,
+    val username: String,
+    val name: String,
     val age: Int,
-    val gender: String,
+    @Serializable(with = LocalDateSerializer::class)
+    val birthDate: LocalDate,
+    val gender: Gender,
+    val height: Int,
+    val weight: Float,
+    val weightDesire: WeightDesire
 )
 
 @Serializable
@@ -50,6 +104,26 @@ data class TrainingData(
     val caloriesBurned: Double,
     val met: Double,
     val recoveryTime: Int,
+)
+
+/**
+ * Представление запроса индекса активности пользователя от Nutrition
+ */
+@Serializable
+data class RationRequestDTO(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val login: String,
+)
+
+/**
+ * Представление ответа от ActivityService на запрос индекса активности пользователя
+ */
+@Serializable
+data class ActivityResponseDTO(
+    @Serializable(with = UUIDSerializer::class)
+    val id: UUID,
+    val activityIndex: Float
 )
 
 /**
@@ -76,13 +150,14 @@ class ActivityService(
     internal var heartRateList: List<Pair<Long, Int>> = emptyList()
     internal var avgHeartRate: Double = 0.0
     internal var maxHeartRate: Int = 0
-    internal var weight: Double = 0.0
+    internal var weight: Float = 0.0F
     internal var age: Int = 0
-    internal var gender: String = ""
+    internal var gender: Gender = Gender.MALE
     internal var caloriesBurned: Double = 0.0
     internal var met: Double = 0.0
     internal var recoveryTime: Int = 0
     internal var userDataReceived = CompletableDeferred<Unit>()
+    internal var userDataUUID = UUID.randomUUID()
 
     /**
      * Обработчик запроса от WeightHistoryService. Затем отправляет ответ
@@ -93,7 +168,8 @@ class ActivityService(
      * где: ActivityRecord - это DTO вида ActivityRecord(date:String, calories:Double) (т.е. в сумме это id и список пар дата-сожжённые калории)
      */
     internal fun handleActivityRequest(message: String) {
-        val userId = Json.decodeFromString<String>(message)
+        val requestWrapper = Json.decodeFromString<RequestWrapper<String>>(message)
+        val userId = requestWrapper.dto
         val records =
             fetchFromDatabase(userId).map {
                 ActivityRecord(
@@ -101,7 +177,7 @@ class ActivityService(
                     calories = it.caloriesBurned,
                 )
             }
-        sendEvent("activity:response:CaloriesBurned", Json.encodeToString(ActivityResponse(userId, records)))
+        sendEvent("activity:response:CaloriesBurned", Json.encodeToString(ResponseWrapper(requestWrapper.id,ActivityResponse(userId, records))))
     }
 
     /**
@@ -111,7 +187,9 @@ class ActivityService(
      * где: gender = {"male","female"} (т.е. в сумме - id, вес, возраст и пол пользователя)
      */
     internal fun handleUserDataResponse(message: String) {
-        val response = Json.decodeFromString<UserDataResponse>(message)
+        val responseWrapper = Json.decodeFromString<ResponseWrapper<UserDataResponse>>(message)
+        if (responseWrapper.id != userDataUUID) return
+        val response = responseWrapper.dto
         this.weight = response.weight
         this.age = response.age
         this.gender = response.gender
@@ -128,10 +206,11 @@ class ActivityService(
      */
     internal fun handleAddTrainingRequest(message: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            val request = Json.decodeFromString<APIGatewayToActivityRequest>(message)
+            val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
+            val request = requestWrapper.dto
             val result = processRequestAddTraining(request.userId, request.jsonWorkout, request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:AddTraining", Json.encodeToString(result))
+            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
         }
     }
 
@@ -145,10 +224,11 @@ class ActivityService(
      */
     internal fun handleGetSomeTrainingRequest(message: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            val request = Json.decodeFromString<APIGatewayToActivityRequest>(message)
+            val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
+            val request = requestWrapper.dto
             val result = processRequestGetSomeTraining(userId = request.userId, trainingDate = request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetSomeTraining", Json.encodeToString(result))
+            sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
         }
     }
 
@@ -161,10 +241,29 @@ class ActivityService(
      */
     internal fun handleGetAllTrainingsRequest(message: String) {
         CoroutineScope(Dispatchers.IO).launch {
-            val request = Json.decodeFromString<APIGatewayToActivityRequest>(message)
+            val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
+            val request = requestWrapper.dto
             val result = processRequestGetAllTraining(request.userId)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetAllTrainings", Json.encodeToString(result))
+            sendEvent("activity:response:GetAllTrainings", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),result)))
+        }
+    }
+
+    /**
+     * Обработчик запроса от NutritionService. Затем отправляет ответ.
+     * Слушает по каналу "activity:request:ActivityIndex"
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - login:String (id пользователя)
+     * Отправляет по каналу "activity:response:ActivityIndex"
+     * Отправляемые данные: закодированное Json.encodeToString - activityIndex:Float (текущее пожелание пользователя по контролю веса)
+     */
+    internal fun handleNutritionActivityIndexRequest(message: String) {
+        try {
+            val request = Json.decodeFromString<RationRequestDTO>(message)
+            val met:Double = fetchFromDatabase(request.login).map { it.met }[0]
+            val activityIndex = 1 + 0.05 * met
+            sendEvent("activity:response:ActivityIndex", Json.encodeToString(ActivityResponseDTO(UUID.randomUUID(),activityIndex.toFloat())))
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to handle nutrition wish request", e)
         }
     }
 
@@ -176,6 +275,7 @@ class ActivityService(
                 "activity:request:AddTraining" to ::handleAddTrainingRequest,
                 "activity:request:GetSomeTraining" to::handleGetSomeTrainingRequest,
                 "activity:request:GetAllTrainings" to::handleGetAllTrainingsRequest,
+                "activity:request:ActivityIndex" to ::handleNutritionActivityIndexRequest,
             ),
         )
 
@@ -304,7 +404,8 @@ class ActivityService(
     internal suspend fun fetchUserData() {
         try {
             userDataReceived = CompletableDeferred()
-            sendEvent("user_data:request:UserData", Json.encodeToString(userId))
+            userDataUUID = UUID.randomUUID()
+            sendEvent("user_data:request:UserData", Json.encodeToString(GetterDto(userDataUUID,userId)))
             userDataReceived.await()
         } catch (e: Exception) {
             println("Failed to send event: ${e.message}")
@@ -320,7 +421,7 @@ class ActivityService(
         if (weight <= 0 || age <= 0) {
             throw IllegalArgumentException("Invalid user data: weight or age is not positive")
         }
-        if (gender !in listOf("male", "female")) {
+        if (gender !in listOf(Gender.MALE, Gender.FEMALE)) {
             throw IllegalArgumentException("Invalid user data: gender must be 'male' or 'female'")
         }
     }
@@ -332,7 +433,7 @@ class ActivityService(
     internal fun calculateCalories() {
         validateUserData()
         this.caloriesBurned =
-            if (gender == "male") {
+            if (gender == Gender.MALE) {
                 ((-55.0969 + (0.6309 * avgHeartRate) + (0.1988 * weight) + (0.2017 * age)) / 4.184) * trainingDuration
             } else {
                 ((-20.4022 + (0.4472 * avgHeartRate) - (0.1263 * weight) + (0.074 * age)) / 4.184) * trainingDuration
@@ -381,8 +482,8 @@ class ActivityService(
                     met = met,
                     recoveryTime = recoveryTime,
                 )
-            sendEvent("achievement:request:TrainingData", Json.encodeToString(trainingData))
-            sendEvent("notify:request:TrainingData", Json.encodeToString(trainingData))
+            sendEvent("achievement:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),trainingData)))
+            sendEvent("notify:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(),trainingData)))
         } catch (e: Exception) {
             println("Failed to send training data: ${e.message}")
             throw RuntimeException("Failed to send training data to Achievement and Notify services", e)

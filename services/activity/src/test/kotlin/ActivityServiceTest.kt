@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.Gender
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -21,9 +22,9 @@ class ActivityServiceTest {
 
         // Мокируем fetchUserData, чтобы он возвращал фиктивные данные
         coEvery { activityService.fetchUserData() } answers {
-            activityService.weight = 70.0
+            activityService.weight = 70.0F
             activityService.age = 30
-            activityService.gender = "male"
+            activityService.gender = Gender.MALE
         }
 
         // Мокируем вызов внешнего сервиса (делаем его пустым)
@@ -44,7 +45,7 @@ class ActivityServiceTest {
                 }
                 """.trimIndent()
 
-            activityService.processRequest("user1", jsonWorkout)
+            activityService.processRequestAddTraining("user1", jsonWorkout)
             assertEquals(5400, activityService.trainingDuration) // 1 час 30 минут = 5400 секунд
         }
 
@@ -65,9 +66,9 @@ class ActivityServiceTest {
 
     @Test
     fun testCalculateCalories() {
-        activityService.weight = 70.0
+        activityService.weight = 70.0F
         activityService.age = 30
-        activityService.gender = "male"
+        activityService.gender = Gender.MALE
         activityService.avgHeartRate = 120.0
         activityService.trainingDuration = 3600
 
@@ -75,9 +76,9 @@ class ActivityServiceTest {
         // Реальный ответ: 34914,23518...
         assertEquals(34914.235, activityService.caloriesBurned, 0.001)
 
-        activityService.weight = 58.5
+        activityService.weight = 58.5F
         activityService.age = 25
-        activityService.gender = "female"
+        activityService.gender = Gender.FEMALE
         activityService.avgHeartRate = 124.0
         activityService.trainingDuration = 2000
 
@@ -113,7 +114,7 @@ class ActivityServiceTest {
             val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
             // Сохраняем данные
-            activityService.processRequest(
+            activityService.processRequestAddTraining(
                 userId,
                 """
                 {
@@ -127,9 +128,9 @@ class ActivityServiceTest {
             )
 
             // Получаем данные
-            val result = activityService.processRequest(userId, trainingDate = trainingDate) as Map<*, *>
-            assertEquals(userId, result["user_id"])
-            assertEquals(3600, result["training_duration"]) // 1 час = 3600 секунд
+            val result = activityService.processRequestGetSomeTraining(userId, trainingDate = trainingDate)
+            assertEquals(userId, result.userId)
+            assertEquals(3600, result.trainingDuration) // 1 час = 3600 секунд
         }
 
     @Test
@@ -144,16 +145,15 @@ class ActivityServiceTest {
 
         assertThrows(RuntimeException::class.java) {
             runBlocking {
-                activityService.processRequest("user1", invalidJsonWorkout)
+                activityService.processRequestAddTraining("user1", invalidJsonWorkout)
             }
         }
     }
 
     @Test
     fun testInvalidUserData() {
-        activityService.weight = -1.0
+        activityService.weight = -1.0F
         activityService.age = 0
-        activityService.gender = "unknown"
 
         assertThrows(IllegalArgumentException::class.java) {
             activityService.calculateCalories()

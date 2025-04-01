@@ -1,3 +1,5 @@
+import utils.Gender
+import utils.WeightDesire
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -9,10 +11,10 @@ import kotlin.math.pow
  * @property goal Цель по контролю веса.
  */
 class WeightPredictor(
-    internal val gender: String,
+    internal val gender: Gender,
     internal val age: Int,
     internal val height: Int,
-    internal val goal: String,
+    internal val goal: WeightDesire,
 ) {
     internal val weightHistory = mutableListOf<Double>()
     internal val calorieIntakeHistory = mutableListOf<Double>()
@@ -21,7 +23,7 @@ class WeightPredictor(
     internal fun Double.pow(exp: Int): Double = this.pow(exp.toDouble())
 
     internal fun calculateBMR(weight: Double): Double {
-        return if (gender == "male") {
+        return if (gender == Gender.MALE) {
             10 * weight + 6.25 * height - 5 * age + 5
         } else {
             10 * weight + 6.25 * height - 5 * age - 161
@@ -59,8 +61,8 @@ class WeightPredictor(
 
         val goalAdjustment =
             when (goal) {
-                "lose" -> -500.0
-                "gain" -> 500.0
+                WeightDesire.LOSS -> -500.0
+                WeightDesire.GAIN -> 500.0
                 else -> 0.0
             }
 

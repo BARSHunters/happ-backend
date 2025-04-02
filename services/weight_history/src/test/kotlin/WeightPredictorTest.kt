@@ -1,6 +1,8 @@
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.Gender
+import utils.WeightDesire
 
 class WeightPredictorTest {
     private lateinit var weightPredictor: WeightPredictor
@@ -10,10 +12,10 @@ class WeightPredictorTest {
         // Создаем объект WeightPredictor
         weightPredictor =
             WeightPredictor(
-                gender = "male",
+                gender = Gender.MALE,
                 age = 30,
                 height = 176,
-                goal = "keep",
+                goal = WeightDesire.REMAIN,
             )
     }
 
@@ -39,10 +41,10 @@ class WeightPredictorTest {
         // Проверяем расчет базового метаболизма для женщины
         weightPredictor =
             WeightPredictor(
-                gender = "female",
+                gender = Gender.FEMALE,
                 age = 30,
                 height = 164,
-                goal = "keep",
+                goal = WeightDesire.REMAIN,
             )
         val bmrFemale = weightPredictor.calculateBMR(60.0)
         assertEquals(1314.0, bmrFemale, 0.1) // Погрешность 0.1

@@ -1,5 +1,6 @@
 package com.example.util
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.*
 
@@ -11,4 +12,5 @@ fun uuidEquals(uuid: UUID) : (String) -> Boolean = {
     json.decodeFromString<UUIDResponse>(it).uuid == uuid
 }
 
-data class UUIDWrapper<T>(val uuid: UUID, val dto: T)
+@Serializable
+data class UUIDWrapper<T>(@Serializable(with = UUIDSerializer::class) val uuid: UUID, val dto: T)

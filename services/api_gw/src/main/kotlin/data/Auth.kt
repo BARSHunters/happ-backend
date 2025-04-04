@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.util.LocalDateSerializer
+import kotlinx.serialization.Serializable
+import java.time.LocalDate
 import java.util.*
 
 data class TokenValidationRequest(val id: UUID, val token: String)
@@ -12,7 +15,6 @@ data class TokenValidationResponse(val id: UUID, val message: String, val name: 
 
 // DTO's
 
-/*
 data class LoginDto(
     val username: String,
     val password: String
@@ -45,5 +47,4 @@ enum class WeightDesire {
     REMAIN,
     GAIN
 }
-*/
 

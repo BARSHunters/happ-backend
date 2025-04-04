@@ -35,6 +35,12 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
 }
 
+configurations {
+    all {
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
+}
+
 // Конфигурация ktlint
 ktlint {
     version.set("1.0.1") // Укажите версию ktlint

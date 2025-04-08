@@ -19,10 +19,11 @@ fun afterStartup() {
     Database
     val userRepository = UserRepository()
     val tokenRepository = TokenRepository()
+    println("Init User Service")
     userService = UserService(userRepository, tokenRepository)
+    println("Init Auth Controller")
     authController = AuthController(userService)
     println("Service auth is running")
-
 }
 
 fun receiveJwtToken(requestBody: String) {

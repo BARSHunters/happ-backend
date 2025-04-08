@@ -6,7 +6,7 @@ import io.github.cdimascio.dotenv.dotenv
 import java.util.*
 
 object JwtTokenUtil {
-    private val dotenv = dotenv()
+    private val dotenv = dotenv { directory = "./services/auth" }
     private val secretKey = dotenv["JWT_SECRET"].toString()
 
     private val jwtExpiration = dotenv["JWT_EXPIRATION"].toLong()

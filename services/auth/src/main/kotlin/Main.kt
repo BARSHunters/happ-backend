@@ -24,7 +24,6 @@ fun afterStartup() {
     println("Init Auth Controller")
     authController = AuthController(userService)
     println("Service auth is running")
-
 }
 
 fun receiveJwtToken(requestBody: String) {

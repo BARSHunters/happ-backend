@@ -5,7 +5,6 @@ import com.example.data.RationRequestDTO
 import com.example.data.RegisterDto
 import com.example.data.UserDataRequest
 import com.example.util.UUIDWrapper
-import com.example.util.replaceLast
 import com.example.util.uuidEquals
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -13,7 +12,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import keydb.sendEvent
-import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.util.*
@@ -21,7 +19,7 @@ import java.util.*
 fun Application.configureRouting() {
     routing {
         get("/echo/{phrase}") {
-            val result = getResultFromMicroservice("channel", { true }) {
+            val result = getResultFromMicroservice("channel", resultCondition = { true }) {
                 sendEvent("echo", call.parameters["phrase"]!!)
             }
             call.respond(result)
@@ -29,18 +27,28 @@ fun Application.configureRouting() {
 
         post("/login") {
             val uuidWrapper = UUIDWrapper(UUID.randomUUID(), call.receiveText())
-            val result = getResultFromMicroservice("auth:response:Login", uuidEquals(uuidWrapper.uuid)) {
-                println("2345")
-                sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
-            }
+            val result =
+                getResultFromMicroservice(
+                    "auth:response:Login",
+                    "error",
+                    resultCondition = uuidEquals(uuidWrapper.uuid)
+                ) {
+                    println("2345")
+                    sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
+                }
             call.respond(result)
         }
 
         post("/register") {
             val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<RegisterDto>(call.receiveText()))
-            val result = getResultFromMicroservice("auth:response:Register", uuidEquals(uuidWrapper.uuid)) {
-                sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
-            }
+            val result =
+                getResultFromMicroservice(
+                    "auth:response:Register",
+                    "error",
+                    resultCondition = uuidEquals(uuidWrapper.uuid)
+                ) {
+                    sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
+                }
             call.respond(result)
             //call.respond(wrapUUIDAndGetResult("auth:request:Register", "auth:response:Register", call.receiveText()))
         }
@@ -53,9 +61,10 @@ fun Application.configureRouting() {
 
             get("/getUserInfo") {
                 val dto = UserDataRequest(UUID.randomUUID(), getLogin())
-                val result = getResultFromMicroservice("user_data:response:UserData", uuidEquals(dto.uuid)) {
-                    sendEvent("user_data:request:UserData", Json.encodeToString(dto))
-                }
+                val result =
+                    getResultFromMicroservice("user_data:response:UserData", resultCondition = uuidEquals(dto.uuid)) {
+                        sendEvent("user_data:request:UserData", Json.encodeToString(dto))
+                    }
                 call.respond(result)
             }
 
@@ -106,25 +115,24 @@ fun Application.configureRouting() {
 
             get("/getNutritionMenu") {
                 val dto = RationRequestDTO(
-                    id = UUID.randomUUID(),
-                    login = getLogin()
+                    id = UUID.randomUUID(), login = getLogin()
                 )
-                val result = getResultFromMicroservice("nutrition:response:today_ration", uuidEquals(dto.id)) {
-                    sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
-                }
+                val result =
+                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.id)) {
+                        sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
+                    }
                 call.respond(result)
             }
 
             get("/getNutritionMenu/{date}") {
                 val date = call.parameters["date"]!!.toLocalDate()
                 val dto = HistoryRequestRationByDateDTO(
-                    id = UUID.randomUUID(),
-                    login = getLogin(),
-                    date = date
+                    id = UUID.randomUUID(), login = getLogin(), date = date
                 )
-                val result = getResultFromMicroservice("nutrition:response:today_ration", uuidEquals(dto.id)) {
-                    sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
-                }
+                val result =
+                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.id)) {
+                        sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
+                    }
                 call.respond(result)
             }
 
@@ -141,7 +149,7 @@ fun String.toLocalDate(): LocalDate = LocalDate.parse(this)
 
 suspend fun wrapUUIDAndGetResult(requestChannelName: String, responseChannelName: String, request: String): String {
     val uuidWrapper = UUIDWrapper(UUID.randomUUID(), request)
-    val result = getResultFromMicroservice(responseChannelName, uuidEquals(uuidWrapper.uuid)) {
+    val result = getResultFromMicroservice(responseChannelName, resultCondition = uuidEquals(uuidWrapper.uuid)) {
         sendEvent(requestChannelName, Json.encodeToString(uuidWrapper))
     }
     return result

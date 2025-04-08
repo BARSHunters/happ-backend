@@ -7,7 +7,7 @@ import java.util.*
 @Serializable
 data class TokenValidationResponse(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val message: String,
     val username: String
 )

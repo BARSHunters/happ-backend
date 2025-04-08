@@ -7,6 +7,6 @@ import java.util.*
 @Serializable
 data class ResponseWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T
 )

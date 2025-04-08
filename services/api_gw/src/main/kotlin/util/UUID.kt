@@ -4,7 +4,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.*
 
-private data class UUIDResponse(val uuid: UUID)
+@Serializable
+private data class UUIDResponse(@Serializable(with = UUIDSerializer::class) val uuid: UUID)
 
 private val json = Json { ignoreUnknownKeys = true }
 

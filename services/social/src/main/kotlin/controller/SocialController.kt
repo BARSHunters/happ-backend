@@ -32,6 +32,7 @@ class SocialController(private val socialService: SocialService) {
                     NotificationType.FRIEND_REQUEST, request.dto.receiverUsername,
                     NotificationPayload.FriendRequestPayload(friendName = request.dto.senderUsername)
                 )
+                println("Sending notification to the notify service $notification")
                 sendEvent("notify:request:SendNotification", Json.encodeToString(notification))
             } else {
                 val errorMessage = "Failed to send friend request"

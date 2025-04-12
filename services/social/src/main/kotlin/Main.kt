@@ -47,4 +47,4 @@ fun main(): Unit = runServiceListener(
         "social:request:GetFriendsList" to ::getFriendListRequest
     ),
     ::socialServiceStartup
-) 
+)

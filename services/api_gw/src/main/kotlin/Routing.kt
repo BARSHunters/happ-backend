@@ -113,15 +113,38 @@ fun Application.configureRouting() {
             }
 
             get("/getFriendsRequests") {
-                TODO()
+                val username = getLogin()
+                TODO() // get requests for user by name
             }
 
             post("/addFriend/{username}") {
-                TODO()
+                val from = getLogin()
+                val to = call.parameters["username"]!!
+
+                val request = UUIDWrapper(UUID.randomUUID(), FriendshipRequestDTO(from, to))
+                sendEvent("social:request:ProposeFriendship", Json.encodeToString(request))
+
+                call.respond(HttpStatusCode.Created)
             }
 
-            post("/friendRequestAnswer/{username}") {
-                TODO()
+            post("/friendRequestAnswer/accept/{username}") {
+                val from = getLogin()
+                val to = call.parameters["username"]!!
+
+                val request = UUIDWrapper(UUID.randomUUID(), FriendshipResponseDTO(from, to, "accept"))
+                sendEvent("social:request:RespondToFriendship", Json.encodeToString(request))
+
+                call.respond(HttpStatusCode.Created)
+            }
+
+            post("/friendRequestAnswer/reject/{username}") {
+                val from = getLogin()
+                val to = call.parameters["username"]!!
+
+                val request = UUIDWrapper(UUID.randomUUID(), FriendshipResponseDTO(from, to, "reject"))
+                sendEvent("social:request:RespondToFriendship", Json.encodeToString(request))
+
+                call.respond(HttpStatusCode.Created)
             }
 
             get("/getWeightHistory") {

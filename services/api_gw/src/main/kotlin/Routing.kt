@@ -92,7 +92,16 @@ fun Application.configureRouting() {
             }
 
             get("/getFriends") {
-                TODO()
+                val login = getLogin()
+                val request = UUIDWrapper(UUID.randomUUID(), login)
+                val result = getResultFromMicroservice(
+                    "social:response:GetFriendsList",
+                    "error",
+                    resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("social:request:GetFriendsList", Json.encodeToString(request))
+                }
+                call.respond(result)
             }
 
             get("/getAchievements") {

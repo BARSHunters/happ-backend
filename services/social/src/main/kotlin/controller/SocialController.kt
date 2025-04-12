@@ -109,11 +109,9 @@ class SocialController(private val socialService: SocialService) {
 
         try {
             val friendList = socialService.getFriendsList(request.dto)
-            if (friendList.isNotEmpty()) {
-                val friendsListResponse = FriendsListResponse(friendList, friendList.size)
-                val response = ResponseWrapper(request.uuid, friendsListResponse)
-                sendEvent("social:response:GetFriendsList", Json.encodeToString(response))
-            }
+            val friendsListResponse = FriendsListResponse(friendList, friendList.size)
+            val response = ResponseWrapper(request.uuid, friendsListResponse)
+            sendEvent("social:response:GetFriendsList", Json.encodeToString(response))
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"

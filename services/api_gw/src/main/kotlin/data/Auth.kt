@@ -21,8 +21,14 @@ data class TokenValidationResponse(
     val uuid: UUID, val message: String, val username: String
 )
 
-
 // DTO's
+
+@Serializable
+data class TokenDto(
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID,
+    val token: String,
+)
 
 @Serializable
 data class LoginDto(

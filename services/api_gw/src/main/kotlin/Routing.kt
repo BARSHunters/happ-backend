@@ -46,13 +46,19 @@ fun Application.configureRouting() {
                     sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
                 }
             call.respond(result)
-            //call.respond(wrapUUIDAndGetResult("auth:request:Register", "auth:response:Register", call.receiveText()))
         }
 
         authenticate("auth-bearer") {
             post("/logout") {
-                TODO()
-                // call.respond(wrapUUIDAndGetResult("auth:request:JwtRevoke", "auth:response:JwtRevoke", TODO()))
+                val tokenDto = TokenDto(UUID.randomUUID(), call.request.authorization()!!.substringAfter("Bearer "))
+                val result = getResultFromMicroservice(
+                    "auth:response:JwtRevoke",
+                    "error",
+                    resultCondition = uuidEquals(tokenDto.uuid)
+                ) {
+                    sendEvent("auth:request:JwtRevoke", Json.encodeToString(tokenDto))
+                }
+                call.respond(result)
             }
 
             get("/getUserInfo") {

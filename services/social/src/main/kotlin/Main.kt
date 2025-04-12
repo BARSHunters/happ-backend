@@ -43,7 +43,7 @@ fun main(): Unit = runServiceListener(
         "social:request:ProposeFriendship" to ::proposeFriendshipRequest,
         "social:request:RespondToFriendship" to ::respondToFriendshipRequest,
         "social:request:GetUserProfile" to ::getUserProfileRequest,
-        "user_data:response:GetUserData" to ::handleUserDataResponse,
+        "user_data:response:UserData" to ::handleUserDataResponse,
         "social:request:GetFriendsList" to ::getFriendListRequest
     ),
     ::socialServiceStartup

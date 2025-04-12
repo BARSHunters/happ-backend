@@ -79,7 +79,16 @@ fun Application.configureRouting() {
             }
 
             get("/getUserInfo/{username}") {
-                TODO()
+                val username = call.parameters["username"]!!
+                val request = UUIDWrapper(UUID.randomUUID(), username)
+                val result = getResultFromMicroservice(
+                    "social:response:GetUserProfile",
+                    "error",
+                    resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("social:request:GetUserProfile", Json.encodeToString(request))
+                }
+                call.respond(result)
             }
 
             get("/getFriends") {

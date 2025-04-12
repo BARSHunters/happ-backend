@@ -3,6 +3,7 @@ package com.example
 import com.example.data.*
 import com.example.util.UUIDWrapper
 import com.example.util.uuidEquals
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
@@ -72,8 +73,9 @@ fun Application.configureRouting() {
             }
 
             post("/updateInfo") {
-                val uuidWrapper = UUIDWrapper(UUID.randomUUID(), call.receiveText())
+                val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<UserDataDTO>(call.receiveText()))
                 sendEvent("user_data:request:UpdateUserData", Json.encodeToString(uuidWrapper))
+                call.respond(HttpStatusCode.Created)
             }
 
             get("/getUserInfo/{username}") {

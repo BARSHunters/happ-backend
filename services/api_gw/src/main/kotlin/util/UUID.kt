@@ -12,7 +12,7 @@ private val json = Json { ignoreUnknownKeys = true }
 
 fun uuidEquals(uuid: UUID): (String) -> Boolean = { msg ->
     runCatching { json.decodeFromString<UUIDResponse>(msg).uuid == uuid }
-        .onFailure { println(msg) }.getOrThrow()
+        .onFailure { System.err.println("cause by this message: $msg") }.getOrThrow()
 }
 
 @Serializable

@@ -18,7 +18,7 @@ import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.*
 
 /**
  * Оболочка для поддержки запросов с UUID (Слава)
@@ -142,7 +142,7 @@ data class APIGatewayToActivityRequest(
 class ActivityService(
     internal var url: String = "jdbc:postgresql://localhost:5432/trainingdb",
     internal var user: String = "postgres",
-    internal var password: String = "password",
+    internal var password: String = "postgres",
 ) {
     internal var userId: String = ""
     internal var trainingDate: String = ""

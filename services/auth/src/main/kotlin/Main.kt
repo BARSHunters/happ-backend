@@ -41,10 +41,10 @@ fun receiveJwtToken(requestBody: String) {
     val token = request.token
     val username = userService.validateJwtToken(token)
     if (username != null) {
-        val response = TokenValidationResponse(request.id, "valid", username)
+        val response = TokenValidationResponse(request.uuid, "valid", username)
         sendEvent("auth:response:JwtValidation", Json.encodeToString(response))
     } else {
-        val response = TokenValidationResponse(request.id, "invalid", "")
+        val response = TokenValidationResponse(request.uuid, "invalid", "")
         println("response = $response")
         sendEvent("auth:response:JwtValidation", Json.encodeToString(response))
     }
@@ -64,10 +64,10 @@ fun revokeJwtToken(requestBody: String) {
     }
     val token = request.token
     if (userService.revokeJwtToken(token)) {
-        val response = MessageResponse(request.id, "success")
+        val response = MessageResponse(request.uuid, "success")
         sendEvent("auth:response:JwtRevoke", Json.encodeToString(response))
     } else {
-        val response = MessageResponse(request.id, "error")
+        val response = MessageResponse(request.uuid, "error")
         sendEvent("auth:response:JwtRevoke", Json.encodeToString(response))
     }
 }

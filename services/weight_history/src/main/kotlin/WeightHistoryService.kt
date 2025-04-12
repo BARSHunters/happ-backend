@@ -16,7 +16,7 @@ import java.sql.SQLException
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.*
 
 /**
  * Оболочка для поддержки запросов с UUID (Слава)
@@ -200,7 +200,7 @@ data class WeightHistoryResponse(
 class WeightHistoryService(
     internal var url: String = "jdbc:postgresql://localhost:5432/weightdb",
     internal var user: String = "postgres",
-    internal var password: String = "password",
+    internal var password: String = "postgres",
 ) {
     internal var username: String = ""
     internal var weightControlWish: WeightDesire = WeightDesire.REMAIN

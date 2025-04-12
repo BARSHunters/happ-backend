@@ -2,6 +2,7 @@ package com.example.util
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import serializers.UUIDSerializer
 import java.util.*
 
 @Serializable
@@ -9,8 +10,9 @@ private data class UUIDResponse(@Serializable(with = UUIDSerializer::class) val 
 
 private val json = Json { ignoreUnknownKeys = true }
 
-fun uuidEquals(uuid: UUID) : (String) -> Boolean = {
-    json.decodeFromString<UUIDResponse>(it).uuid == uuid
+fun uuidEquals(uuid: UUID): (String) -> Boolean = { msg ->
+    runCatching { json.decodeFromString<UUIDResponse>(msg).uuid == uuid }
+        .onFailure { println(msg) }.getOrThrow()
 }
 
 @Serializable

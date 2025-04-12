@@ -1,25 +1,36 @@
 package com.example.data
 
-import com.example.util.LocalDateSerializer
 import kotlinx.serialization.Serializable
+import serializers.LocalDateSerializer
+import serializers.UUIDSerializer
 import java.time.LocalDate
 import java.util.*
 
-data class TokenValidationRequest(val id: UUID, val token: String)
+@Serializable
+data class TokenValidationRequest(
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID, val token: String
+)
 
 // message: "valid"/"invalid"
 // contract: message: "valid" -> name: real name from JWT,
 // else - the field will be ignored -> may be anything
-data class TokenValidationResponse(val id: UUID, val message: String, val name: String)
+@Serializable
+data class TokenValidationResponse(
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID, val message: String, val username: String
+)
 
 
 // DTO's
 
+@Serializable
 data class LoginDto(
     val username: String,
     val password: String
 )
 
+@Serializable
 data class LoginResponse(
     val jwt: String
 )
@@ -37,11 +48,13 @@ data class RegisterDto(
     val weightDesire: WeightDesire
 )
 
+@Serializable
 enum class Gender {
     MALE,
     FEMALE
 }
 
+@Serializable
 enum class WeightDesire {
     LOSS,
     REMAIN,

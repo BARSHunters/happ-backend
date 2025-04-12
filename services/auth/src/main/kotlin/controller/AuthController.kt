@@ -39,7 +39,8 @@ class AuthController(private val userService: UserService) {
                 if (token != null) {
                     val response = LoginResponse(jwt = token)
                     sendResponse("auth:response:Register", registerRequest.uuid, response)
-                    val userDataRequest = UserDataDto(
+                    val userDataRequest = RequestWrapper(
+                        UUID.randomUUID(), UserDataDto(
                         username = registerDto.username,
                         name = registerDto.name,
                         birthDate = registerDto.birthDate,
@@ -47,6 +48,7 @@ class AuthController(private val userService: UserService) {
                         heightCm = registerDto.heightCm,
                         weightKg = registerDto.weightKg,
                         weightDesire = registerDto.weightDesire
+                        )
                     )
                     sendRequest("user_data:request:CreateUserData", userDataRequest)
                 } else {
@@ -106,7 +108,7 @@ class AuthController(private val userService: UserService) {
         }
     }
 
-    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: UserDataDto) {
+    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: RequestWrapper<UserDataDto>) {
         val requestJson = Json.encodeToString(dto)
         sendEvent(channel, requestJson)
     }

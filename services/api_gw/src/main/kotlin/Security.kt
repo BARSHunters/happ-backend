@@ -33,7 +33,7 @@ fun Application.configureSecurity() {
                 val validationResult = Json.decodeFromString<TokenValidationResponse>(validationResultRaw)
 
                 when (validationResult.message) {
-                    "valid" -> UserIdPrincipal(validationResult.name)
+                    "valid" -> UserIdPrincipal(validationResult.username)
                     else -> null
                 }
             }

@@ -1,9 +1,6 @@
 package com.example
 
-import com.example.data.HistoryRequestRationByDateDTO
-import com.example.data.RationRequestDTO
-import com.example.data.RegisterDto
-import com.example.data.UserDataRequest
+import com.example.data.*
 import com.example.util.UUIDWrapper
 import com.example.util.uuidEquals
 import io.ktor.server.application.*
@@ -26,14 +23,13 @@ fun Application.configureRouting() {
         }
 
         post("/login") {
-            val uuidWrapper = UUIDWrapper(UUID.randomUUID(), call.receiveText())
+            val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<LoginDto>(call.receiveText()))
             val result =
                 getResultFromMicroservice(
                     "auth:response:Login",
                     "error",
                     resultCondition = uuidEquals(uuidWrapper.uuid)
                 ) {
-                    println("2345")
                     sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
                 }
             call.respond(result)
@@ -61,6 +57,7 @@ fun Application.configureRouting() {
 
             get("/getUserInfo") {
                 val dto = UserDataRequest(UUID.randomUUID(), getLogin())
+                println(dto)
                 val result =
                     getResultFromMicroservice("user_data:response:UserData", resultCondition = uuidEquals(dto.uuid)) {
                         sendEvent("user_data:request:UserData", Json.encodeToString(dto))

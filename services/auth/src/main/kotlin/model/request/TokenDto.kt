@@ -7,6 +7,6 @@ import java.util.*
 @Serializable
 data class TokenDto(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val token: String,
 )

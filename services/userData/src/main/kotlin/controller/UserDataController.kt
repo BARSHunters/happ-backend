@@ -36,22 +36,22 @@ class UserDataController(private val userDataService: UserDataService) {
                         username = userData.username,
                         weightKg = userData.weightKg,
                     )
-                    sendResponse("weight_history:request:NewWeight", request.id, weightHistoryResponse)
+                    sendResponse("weight_history:request:NewWeight", request.uuid, weightHistoryResponse)
                 } else {
                     val errorMessage = "Can't create user data"
                     val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                    sendResponse("error", request.id, error)
+                    sendResponse("error", request.uuid, error)
                 }
             } else {
                 val errorMessage = "Data is invalid"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                sendResponse("error", request.id, error)
+                sendResponse("error", request.uuid, error)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal server error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -75,22 +75,22 @@ class UserDataController(private val userDataService: UserDataService) {
                         username = userData.username,
                         weightKg = userData.weightKg,
                     )
-                    sendResponse("weight_history:request:NewWeight", request.id, weightHistoryResponse)
+                    sendResponse("weight_history:request:NewWeight", request.uuid, weightHistoryResponse)
                 } else {
                     val errorMessage = "Can't update user data"
                     val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                    sendResponse("error", request.id, error)
+                    sendResponse("error", request.uuid, error)
                 }
             } else {
                 val errorMessage = "Data is invalid"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                sendResponse("error", request.id, error)
+                sendResponse("error", request.uuid, error)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal server error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -108,11 +108,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userData = userDataService.getUserData(username)
         if (userData != null) {
-            sendResponse("user_data:response:UserData", request.id, userData)
+            sendResponse("user_data:response:UserData", request.uuid, userData)
         } else {
             val errorMessage = "Can't get user data for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -129,11 +129,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userName = userDataService.getName(username)
         if (userName != null) {
-            sendResponse("user_data:response:Name", request.id, userName)
+            sendResponse("user_data:response:Name", request.uuid, userName)
         } else {
             val errorMessage = "Can't get name for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -150,11 +150,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userGender = userDataService.getGender(username)
         if (userGender != null) {
-            sendResponse("user_data:response:Gender", request.id, userGender.name)
+            sendResponse("user_data:response:Gender", request.uuid, userGender.name)
         } else {
             val errorMessage = "Can't get gender for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -171,11 +171,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userBirthDate = userDataService.getBirthDate(username)
         if (userBirthDate != null) {
-            sendResponse("user_data:response:BirthDate", request.id, userBirthDate.toString())
+            sendResponse("user_data:response:BirthDate", request.uuid, userBirthDate.toString())
         } else {
             val errorMessage = "Can't get birthDate for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -192,11 +192,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userAge = userDataService.getAge(username)
         if (userAge != null) {
-            sendResponse("user_data:response:Age", request.id, userAge.toString())
+            sendResponse("user_data:response:Age", request.uuid, userAge.toString())
         } else {
             val errorMessage = "Can't get age for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -213,11 +213,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userHeight = userDataService.getHeightCm(username)
         if (userHeight != null) {
-            sendResponse("user_data:response:Height", request.id, userHeight.toString())
+            sendResponse("user_data:response:Height", request.uuid, userHeight.toString())
         } else {
             val errorMessage = "Can't get height for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -234,11 +234,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userWeight = userDataService.getWeightKg(username)
         if (userWeight != null) {
-            sendResponse("user_data:response:Weight", request.id, userWeight.toString())
+            sendResponse("user_data:response:Weight", request.uuid, userWeight.toString())
         } else {
             val errorMessage = "Can't get weight for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 
@@ -255,11 +255,11 @@ class UserDataController(private val userDataService: UserDataService) {
         val username = request.username
         val userWeightDesire = userDataService.getWeightDesire(username)
         if (userWeightDesire != null) {
-            sendResponse("user_data:response:WeightDesire", request.id, userWeightDesire.name)
+            sendResponse("user_data:response:WeightDesire", request.uuid, userWeightDesire.name)
         } else {
             val errorMessage = "Can't get weight-desire for $username"
             val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-            sendResponse("error", request.id, error)
+            sendResponse("error", request.uuid, error)
         }
     }
 

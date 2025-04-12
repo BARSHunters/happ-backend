@@ -1,5 +1,11 @@
 package com.example.data
 
-import java.util.UUID
+import kotlinx.serialization.Serializable
+import serializers.UUIDSerializer
+import java.util.*
 
-data class UserDataRequest(val uuid: UUID, val username: String)
+@Serializable
+data class UserDataRequest(
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID, val username: String
+)

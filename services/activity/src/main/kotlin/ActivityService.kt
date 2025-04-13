@@ -26,7 +26,7 @@ import java.util.*
 @Serializable
 data class RequestWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T,
 )
 
@@ -36,7 +36,7 @@ data class RequestWrapper<T>(
 @Serializable
 data class ResponseWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T,
 )
 
@@ -46,14 +46,18 @@ data class ResponseWrapper<T>(
 @Serializable
 data class GetterDto(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val username: String,
 )
 
 /**
  * Оболочка для общения с API Gateway (Кирилл А.)
  */
-data class UUIDWrapper<T>(val uuid: UUID, val dto: T)
+@Serializable
+data class UUIDWrapper<T>(
+    @Serializable(with = serializers.UUIDSerializer::class)
+    val uuid: UUID, val dto: T
+)
 
 @Serializable
 data class HeartRateEntry(val timestamp: Long, val heartRate: Int)
@@ -179,7 +183,7 @@ class ActivityService(
             }
         sendEvent(
             "activity:response:CaloriesBurned",
-            Json.encodeToString(ResponseWrapper(requestWrapper.id, ActivityResponse(userId, records))),
+            Json.encodeToString(ResponseWrapper(requestWrapper.uuid, ActivityResponse(userId, records))),
         )
     }
 
@@ -191,7 +195,7 @@ class ActivityService(
      */
     internal fun handleUserDataResponse(message: String) {
         val responseWrapper = Json.decodeFromString<ResponseWrapper<UserDataResponse>>(message)
-        if (responseWrapper.id != userDataUUID) return
+        if (responseWrapper.uuid != userDataUUID) return
         val response = responseWrapper.dto
         this.weight = response.weight
         this.age = response.age
@@ -213,7 +217,7 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestAddTraining(request.userId, request.jsonWorkout, request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result)))
         }
     }
 

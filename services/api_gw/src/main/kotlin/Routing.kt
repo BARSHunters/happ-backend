@@ -156,7 +156,16 @@ fun Application.configureRouting() {
             }
 
             post("/newActivity") {
-                TODO()
+                val user = getLogin()
+                val activity = APIGatewayToActivityRequest(user)
+                val request = UUIDWrapper(UUID.randomUUID(), activity)
+                val result = getResultFromMicroservice(
+                    "activity:response:AddTraining",
+                    resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("activity:request:AddTraining", Json.encodeToString(request))
+                }
+                call.respond(result)
             }
 
             get("/getNutritionMenu") {

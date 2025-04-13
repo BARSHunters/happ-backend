@@ -23,8 +23,7 @@ import java.util.*
  */
 @Serializable
 data class RequestWrapper<T>(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val dto: T,
 )
 
@@ -33,8 +32,7 @@ data class RequestWrapper<T>(
  */
 @Serializable
 data class ResponseWrapper<T>(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val dto: T,
 )
 
@@ -43,15 +41,17 @@ data class ResponseWrapper<T>(
  */
 @Serializable
 data class GetterDto(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val username: String,
 )
 
 /**
  * Оболочка для общения с API Gateway (Кирилл А.)
  */
-data class UUIDWrapper<T>(val uuid: UUID, val dto: T)
+@Serializable
+data class UUIDWrapper<T>(
+    @Serializable(with = serializers.UUIDSerializer::class) val uuid: UUID, val dto: T
+)
 
 /**
  * Ответ от сервиса активности.
@@ -96,8 +96,7 @@ data class UserDataResponse(
     val username: String,
     val name: String,
     val age: Int,
-    @Serializable(with = LocalDateSerializer::class)
-    val birthDate: LocalDate,
+    @Serializable(with = LocalDateSerializer::class) val birthDate: LocalDate,
     val gender: Gender,
     val height: Int,
     val weight: Float,
@@ -120,8 +119,7 @@ data class NewWeightResponse(
  */
 @Serializable
 data class RationRequestDTO(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
     val login: String,
 )
 
@@ -130,8 +128,7 @@ data class RationRequestDTO(
  */
 @Serializable
 data class WishResponseDTO(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
     val wish: WeightDesire,
 )
 
@@ -140,8 +137,7 @@ data class WishResponseDTO(
  */
 @Serializable
 data class HistoryRequestDTO(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
     val login: String,
     val days: Int = 30,
 )
@@ -153,8 +149,7 @@ data class HistoryRequestDTO(
  */
 @Serializable
 data class HistoryResponseDTO(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
     val rations: Map<String, HistoryRow>,
 )
 
@@ -228,7 +223,10 @@ class WeightHistoryService(
         try {
             val request = Json.decodeFromString<RationRequestDTO>(message)
             val wish = fetchWeightControlWishFromDB(request.login)
-            sendEvent("weight_history:response:WeightControlWish", Json.encodeToString(WishResponseDTO(UUID.randomUUID(), wish)))
+            sendEvent(
+                "weight_history:response:WeightControlWish",
+                Json.encodeToString(WishResponseDTO(UUID.randomUUID(), wish))
+            )
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)
         }
@@ -245,7 +243,7 @@ class WeightHistoryService(
             val response = responseWrapper.dto
             validateWeight(response.weightKg)
             saveWeightToDB(username, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weightKg)
-            println("New weight saved for user: $username, weight: ${response.weightKg}, UUID: ${responseWrapper.id}")
+            println("New weight saved for user: $username, weight: ${response.weightKg}, UUID: ${responseWrapper.uuid}")
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle new weight request", e)
         }
@@ -260,7 +258,7 @@ class WeightHistoryService(
     internal fun handleActivityResponse(message: String) {
         try {
             val responseWrapper = Json.decodeFromString<ResponseWrapper<ActivityResponse>>(message)
-            if (responseWrapper.id != activityUUID) return
+            if (responseWrapper.uuid != activityUUID) return
             val response = responseWrapper.dto
             activityData = response.activities.associate { it.date to it.calories }
             println("Activity data received for user: ${response.username}")
@@ -280,9 +278,10 @@ class WeightHistoryService(
     internal fun handleUserDataResponse(message: String) {
         try {
             val responseWrapper = Json.decodeFromString<ResponseWrapper<UserDataResponse>>(message)
-            if (responseWrapper.id != userDataUUID) return
+            if (responseWrapper.uuid != userDataUUID) return
             val response = responseWrapper.dto
             this.age = response.age
+            this.username = response.username
             validateWeight(response.weight)
             saveWeightToDB(username, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
             this.gender = response.gender
@@ -335,24 +334,26 @@ class WeightHistoryService(
             }
             val result = processRequest(request.username, wish)
             println("Result of request from API Gateway: $result")
-            sendEvent("weight_history:response:WeightHistoryAndPrediction", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent(
+                "weight_history:response:WeightHistoryAndPrediction",
+                Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result))
+            )
         }
     }
 
     /**
      * Основная функция для запуска сервиса.
      */
-    fun main(): Unit =
-        runServiceListener(
-            mapOf(
-                "activity:response:CaloriesBurned" to ::handleActivityResponse,
-                "user_data:response:UserData" to ::handleUserDataResponse,
-                "nutrition:response:CPFC" to ::handleNutritionResponse,
-                "weight_history:request:WeightControlWish" to ::handleNutritionWishRequest,
-                "weight_history:request:NewWeight" to ::handleNewWeightRequest,
-                "weight_history:request:WeightHistoryAndPrediction" to ::handleAPIGatewayRequest,
-            ),
-        )
+    fun main(): Unit = runServiceListener(
+        mapOf(
+            "activity:response:CaloriesBurned" to ::handleActivityResponse,
+            "user_data:response:UserData" to ::handleUserDataResponse,
+            "nutrition:response:CPFC" to ::handleNutritionResponse,
+            "weight_history:request:WeightControlWish" to ::handleNutritionWishRequest,
+            "weight_history:request:NewWeight" to ::handleNewWeightRequest,
+            "weight_history:request:WeightHistoryAndPrediction" to ::handleAPIGatewayRequest,
+        ),
+    )
 
     /**
      * Обрабатывает запрос на получение истории веса и прогноза.
@@ -514,7 +515,9 @@ class WeightHistoryService(
                     setString(1, username)
                 }.executeQuery().let { rs ->
                     if (rs.next()) {
-                        Json.decodeFromString(rs.getString("weight_history"))
+                        runCatching<List<WeightHistoryEntry>> {
+                            Json.decodeFromString(rs.getString("weight_history"))
+                        }.getOrElse { emptyList() }
                     } else {
                         emptyList()
                     }
@@ -589,13 +592,12 @@ class WeightHistoryService(
     internal fun calculatePredictedWeight(): Float {
         if (weightHistory.isEmpty()) return 0.0F
 
-        val predictor =
-            WeightPredictor(
-                gender = gender,
-                age = age,
-                height = height,
-                goal = weightControlWish,
-            )
+        val predictor = WeightPredictor(
+            gender = gender,
+            age = age,
+            height = height,
+            goal = weightControlWish,
+        )
 
         weightHistory.forEach { entry ->
             val caloriesIntake = nutritionData[entry.dateTime.split(" ")[0]]?.calories ?: 2000.0
@@ -613,9 +615,7 @@ class WeightHistoryService(
      * @param weight Прогнозируемый вес.
      */
     internal fun addPredictedWeight(weight: Float) {
-        val nextDate =
-            LocalDateTime.now().plusDays(1)
-                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        val nextDate = LocalDateTime.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         weightHistory += WeightHistoryEntry(nextDate, weight)
     }
 

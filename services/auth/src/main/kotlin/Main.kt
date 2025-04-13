@@ -16,6 +16,7 @@ import service.UserService
 lateinit var userService: UserService
 lateinit var authController: AuthController
 fun afterStartup() {
+    println("Start running auth service")
     Database
     val userRepository = UserRepository()
     val tokenRepository = TokenRepository()

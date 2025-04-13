@@ -235,7 +235,10 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestGetSomeTraining(userId = request.userId, trainingDate = request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent(
+                "activity:response:GetSomeTraining",
+                Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result))
+            )
         }
     }
 
@@ -252,7 +255,10 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestGetAllTraining(request.userId)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetAllTrainings", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent(
+                "activity:response:GetAllTrainings",
+                Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result))
+            )
         }
     }
 

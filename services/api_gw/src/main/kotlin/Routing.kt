@@ -25,37 +25,36 @@ fun Application.configureRouting() {
 
         post("/login") {
             val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<LoginDto>(call.receiveText()))
-            val result =
-                getResultFromMicroservice(
-                    "auth:response:Login",
-                    "error",
-                    resultCondition = uuidEquals(uuidWrapper.uuid)
-                ) {
-                    sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
-                }
+            val result = getResultFromMicroservice(
+                "auth:response:Login", "error", resultCondition = uuidEquals(uuidWrapper.uuid)
+            ) {
+                sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
+            }
             call.respond(result)
         }
 
         post("/register") {
             val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<RegisterDto>(call.receiveText()))
-            val result =
-                getResultFromMicroservice(
-                    "auth:response:Register",
-                    "error",
-                    resultCondition = uuidEquals(uuidWrapper.uuid)
-                ) {
-                    sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
-                }
+            val result = getResultFromMicroservice(
+                "auth:response:Register", "error", resultCondition = uuidEquals(uuidWrapper.uuid)
+            ) {
+                sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
+            }
             call.respond(result)
         }
 
         authenticate("auth-bearer") {
+            post("/registerDevice") {
+                val name = getLogin()
+                val phoneId = call.receiveText()
+                val request = NotifyRegisterPhone(name, phoneId)
+                sendEvent("notify:request:registerDevice", Json.encodeToString(request))
+            }
+
             post("/logout") {
                 val tokenDto = TokenDto(UUID.randomUUID(), call.request.authorization()!!.substringAfter("Bearer "))
                 val result = getResultFromMicroservice(
-                    "auth:response:JwtRevoke",
-                    "error",
-                    resultCondition = uuidEquals(tokenDto.uuid)
+                    "auth:response:JwtRevoke", "error", resultCondition = uuidEquals(tokenDto.uuid)
                 ) {
                     sendEvent("auth:request:JwtRevoke", Json.encodeToString(tokenDto))
                 }
@@ -73,7 +72,8 @@ fun Application.configureRouting() {
             }
 
             post("/updateInfo") {
-                val uuidWrapper = UUIDWrapper(UUID.randomUUID(), Json.decodeFromString<UserDataDTO>(call.receiveText()))
+                val payload = Json.decodeFromString<UserDataDTO>(call.receiveText()).copy(username = getLogin())
+                val uuidWrapper = UUIDWrapper(UUID.randomUUID(), payload)
                 sendEvent("user_data:request:UpdateUserData", Json.encodeToString(uuidWrapper))
                 call.respond(HttpStatusCode.Created)
             }
@@ -82,9 +82,7 @@ fun Application.configureRouting() {
                 val username = call.parameters["username"]!!
                 val request = UUIDWrapper(UUID.randomUUID(), username)
                 val result = getResultFromMicroservice(
-                    "social:response:GetUserProfile",
-                    "error",
-                    resultCondition = uuidEquals(request.uuid)
+                    "social:response:GetUserProfile", "error", resultCondition = uuidEquals(request.uuid)
                 ) {
                     sendEvent("social:request:GetUserProfile", Json.encodeToString(request))
                 }
@@ -95,9 +93,7 @@ fun Application.configureRouting() {
                 val login = getLogin()
                 val request = UUIDWrapper(UUID.randomUUID(), login)
                 val result = getResultFromMicroservice(
-                    "social:response:GetFriendsList",
-                    "error",
-                    resultCondition = uuidEquals(request.uuid)
+                    "social:response:GetFriendsList", "error", resultCondition = uuidEquals(request.uuid)
                 ) {
                     sendEvent("social:request:GetFriendsList", Json.encodeToString(request))
                 }
@@ -116,9 +112,7 @@ fun Application.configureRouting() {
                 val username = getLogin()
                 val request = UUIDWrapper(UUID.randomUUID(), username)
                 val result = getResultFromMicroservice(
-                    "social:response:GetFriendsRequests",
-                    "error",
-                    resultCondition = uuidEquals(request.uuid)
+                    "social:response:GetFriendsRequests", "error", resultCondition = uuidEquals(request.uuid)
                 ) {
                     sendEvent("social:request:GetFriendsRequests", Json.encodeToString(request))
                 }
@@ -157,20 +151,41 @@ fun Application.configureRouting() {
             }
 
             get("/getWeightHistory") {
-                TODO()
+                val name = getLogin()
+
+                val request = UUIDWrapper(
+                    UUID.randomUUID(), APIGatewayToWeightHistoryRequest(
+                        username = name, weightControlWish = null
+                    )
+                )
+                val result = getResultFromMicroservice(
+                    "weight_history:response:WeightHistoryAndPrediction", resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("weight_history:request:WeightHistoryAndPrediction", Json.encodeToString(request))
+                }
+
+                call.respond(result)
             }
 
             get("/getActivities") {
-                TODO()
-            }
-
-            post("/newActivity") {
                 val user = getLogin()
                 val activity = APIGatewayToActivityRequest(user)
                 val request = UUIDWrapper(UUID.randomUUID(), activity)
                 val result = getResultFromMicroservice(
-                    "activity:response:AddTraining",
-                    resultCondition = uuidEquals(request.uuid)
+                    "activity:response:GetAllTrainings", resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("activity:request:GetAllTrainings", Json.encodeToString(request))
+                }
+                call.respond(result)
+            }
+
+            post("/newActivity") {
+                val user = getLogin()
+                val data = Json.decodeFromString<ActivityDTO>(call.receiveText())
+                val activity = APIGatewayToActivityRequest(user, jsonWorkout = Json.encodeToString(data))
+                val request = UUIDWrapper(UUID.randomUUID(), activity)
+                val result = getResultFromMicroservice(
+                    "activity:response:AddTraining", resultCondition = uuidEquals(request.uuid)
                 ) {
                     sendEvent("activity:request:AddTraining", Json.encodeToString(request))
                 }

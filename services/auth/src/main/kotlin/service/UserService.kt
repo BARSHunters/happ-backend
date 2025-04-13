@@ -12,7 +12,7 @@ import java.util.*
 
 class UserService(private val userRepository: UserRepository, private val tokenRepository: TokenRepository) {
 
-    private val dotenv = dotenv { directory = "./services/auth" }
+    private val dotenv = dotenv { /* directory = "./services/auth" */ }
     private val jwtExpirationSeconds = dotenv["JWT_EXPIRATION"].toLong() / 100
 
 

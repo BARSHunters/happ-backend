@@ -14,3 +14,15 @@ data class APIGatewayToActivityRequest(
     val jsonWorkout: String? = null,
     val trainingDate: String? = null,
 )
+
+@Serializable
+data class ActivityDTO(
+    val duration: String, // format hh:mm:ss
+    val heartRates: List<HeartRate>
+)
+
+@Serializable
+data class HeartRate(
+    val timestamp: Long,
+    val heartRate: Int
+)

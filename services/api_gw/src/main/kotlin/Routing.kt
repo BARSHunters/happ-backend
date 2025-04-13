@@ -114,7 +114,16 @@ fun Application.configureRouting() {
 
             get("/getFriendsRequests") {
                 val username = getLogin()
-                TODO() // get requests for user by name
+                val request = UUIDWrapper(UUID.randomUUID(), username)
+                val result = getResultFromMicroservice(
+                    "social:response:GetFriendsRequests",
+                    "error",
+                    resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("social:request:GetFriendsRequests", Json.encodeToString(request))
+                }
+
+                call.respond(result)
             }
 
             post("/addFriend/{username}") {

@@ -30,6 +30,7 @@ fun Application.configureRouting() {
             ) {
                 sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
             }
+            // result.substring(53..<result.length - 1) - successfully result
             call.respond(result)
         }
 
@@ -225,11 +226,3 @@ fun Application.configureRouting() {
 fun RoutingContext.getLogin() = call.principal<UserIdPrincipal>()?.name!!
 
 fun String.toLocalDate(): LocalDate = LocalDate.parse(this)
-
-suspend fun wrapUUIDAndGetResult(requestChannelName: String, responseChannelName: String, request: String): String {
-    val uuidWrapper = UUIDWrapper(UUID.randomUUID(), request)
-    val result = getResultFromMicroservice(responseChannelName, resultCondition = uuidEquals(uuidWrapper.uuid)) {
-        sendEvent(requestChannelName, Json.encodeToString(uuidWrapper))
-    }
-    return result
-}

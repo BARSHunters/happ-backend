@@ -177,7 +177,7 @@ data class HistoryRow(
 @Serializable
 data class APIGatewayToWeightHistoryRequest(
     val username: String,
-    val weightControlWish: WeightDesire = WeightDesire.REMAIN,
+    val weightControlWish: WeightDesire?,
 )
 
 /**
@@ -329,7 +329,11 @@ class WeightHistoryService(
         CoroutineScope(Dispatchers.IO).launch {
             val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToWeightHistoryRequest>>(message)
             val request = requestWrapper.dto
-            val result = processRequest(request.username, request.weightControlWish)
+            var wish = request.weightControlWish
+            if (wish == null) {
+                wish = fetchWeightControlWishFromDB(request.username)
+            }
+            val result = processRequest(request.username, wish)
             println("Result of request from API Gateway: $result")
             sendEvent("weight_history:response:WeightHistoryAndPrediction", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }

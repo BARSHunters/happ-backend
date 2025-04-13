@@ -121,6 +121,31 @@ class SocialController(private val socialService: SocialService) {
         }
     }
 
+    fun handleGetFriendRequests(requestBody: String) {
+        println("Get friend requests: $requestBody")
+        val request: RequestWrapper<String> = try {
+            Json.decodeFromString(requestBody)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendError(UUID.fromString("-1"), error)
+            return
+        }
+        try {
+            val pendingFriends = socialService.getFriendshipRequests(request.dto)
+            val friendsListResponse = FriendsListResponse(pendingFriends, pendingFriends.size)
+            val response = ResponseWrapper(request.uuid, friendsListResponse)
+            sendEvent("social:response:GetFriendsRequests", Json.encodeToString(response))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Internal Server Error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendError(request.uuid, error)
+            return
+        }
+    }
+
     private fun sendError(id: UUID, dto: ErrorDto) {
         val response = ResponseWrapper(id, dto)
         val responseJson = Json.encodeToString(response)

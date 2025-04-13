@@ -81,6 +81,12 @@ class SocialService(
         return success
     }
 
+    fun getFriendshipRequests(username: String): List<String> {
+        val pendingFriends = friendshipRepository.findPendingFriendship(username)
+        return pendingFriends
+
+    }
+
     fun getUserProfile(id: UUID, username: String) {
         // Get friend count from repository
         val friends = friendshipRepository.getFriends(username)

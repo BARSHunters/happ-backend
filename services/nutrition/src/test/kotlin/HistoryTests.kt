@@ -110,7 +110,7 @@ class HistoryTests {
         verify {
             sendEvent(
                 "nutrition:response:ration_by_date",
-                match { it == Json.encodeToString(RationResponseDTO(request.id, result)) })
+                match { it == Json.encodeToString(RationResponseDTO(request.uuid, result)) })
         }
     }
 }

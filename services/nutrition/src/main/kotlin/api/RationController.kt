@@ -61,16 +61,16 @@ object RationController {
 
         val cache: RationCacheDTO
         try {
-            cache = RationCacheService.getByQueryId(request.id)
+            cache = RationCacheService.getByQueryId(request.uuid)
         } catch (e: Exception) {
             e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
 
-        RationCacheService.saveWish(request.id, request.wish)
+        RationCacheService.saveWish(request.uuid, request.wish)
 
-        sendEvent("activity:request:ActivityIndex", Json.encodeToString(RationRequestDTO(request.id, cache.login)))
+        sendEvent("activity:request:ActivityIndex", Json.encodeToString(RationRequestDTO(request.uuid, cache.login)))
     }
 
     /**
@@ -94,16 +94,16 @@ object RationController {
 
         val cache: RationCacheDTO
         try {
-            cache = RationCacheService.getByQueryId(request.id)
+            cache = RationCacheService.getByQueryId(request.uuid)
         } catch (e: Exception) {
             e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
 
-        RationCacheService.saveActivity(request.id, request.activityIndex)
+        RationCacheService.saveActivity(request.uuid, request.activityIndex)
 
-        sendEvent("user_data:request:UserData", Json.encodeToString(UserDataRequestDTO(request.id, cache.login)))
+        sendEvent("user_data:request:UserData", Json.encodeToString(UserDataRequestDTO(request.uuid, cache.login)))
     }
 
     /**
@@ -131,10 +131,10 @@ object RationController {
 
         val cache: RationCacheDTO
         try {
-            cache = RationCacheService.getByQueryId(request.id)
+            cache = RationCacheService.getByQueryId(request.uuid)
         } catch (e: Exception) {
             e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
 
@@ -142,19 +142,25 @@ object RationController {
 
         val dishSet: DailyDishSetDTO = if (cache.type != null) {
             Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type).getOrElse {
-                sendEvent("error", Json.encodeToString(ErrorDTO(request.id, it.message ?: "Couldn't generate ration")))
+                sendEvent(
+                    "error",
+                    Json.encodeToString(ErrorDTO(request.uuid, it.message ?: "Couldn't generate ration"))
+                )
                 return
             }
         } else {
             Decider.decide(user, cache.wish ?: Wish.KEEP).getOrElse {
-                sendEvent("error", Json.encodeToString(ErrorDTO(request.id, it.message ?: "Couldn't generate ration")))
+                sendEvent(
+                    "error",
+                    Json.encodeToString(ErrorDTO(request.uuid, it.message ?: "Couldn't generate ration"))
+                )
                 return
             }
         }
 
-        RationCacheService.clearQuery(request.id)
+        RationCacheService.clearQuery(request.uuid)
         HistoryService.addHistory(cache.login, dishSet)
-        sendEvent("nutrition:response:ration", Json.encodeToString(RationResponseDTO(request.id, dishSet)))
+        sendEvent("nutrition:response:ration", Json.encodeToString(RationResponseDTO(request.uuid, dishSet)))
     }
 
     /**
@@ -180,7 +186,7 @@ object RationController {
         RationCacheService.initUpdateQuery(request)
         sendEvent(
             "weight_history:request:WeightControlWish",
-            Json.encodeToString(RationRequestDTO(request.id, request.login))
+            Json.encodeToString(RationRequestDTO(request.uuid, request.login))
         )
     }
 }

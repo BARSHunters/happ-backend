@@ -15,13 +15,13 @@ import kotlin.math.ln
  */
 @Suppress("unused")
 enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) {
-    YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.heightCm.toDouble()) }),
+    YMCA({ user -> YMCA(user.waist?.toDouble() ?: throw NullPointerException(), user.height.toDouble()) }),
     USNavy({ user ->
         USNavy(
             user.gender,
             user.waist?.toDouble() ?: throw NullPointerException(),
             user.neck?.toDouble() ?: throw NullPointerException(),
-            user.heightCm.toDouble(),
+            user.height.toDouble(),
             user.hips?.toDouble() ?: throw NullPointerException()
         )
     }),
@@ -34,8 +34,8 @@ enum class BodyFatCalculatorType(val calculator: (user: UserDTO) -> Calculator) 
     }),
     BMI({ user ->
         BMI(
-            user.weightKg.toDouble(),
-            user.heightCm.toDouble(),
+            user.weight.toDouble(),
+            user.height.toDouble(),
             Period.between(user.birthDate, LocalDate.now()).years.toDouble(),
             user.gender
         )

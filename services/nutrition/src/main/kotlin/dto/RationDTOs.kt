@@ -16,7 +16,7 @@ import java.util.*
 @Serializable
 data class RationRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
 )
 
@@ -26,7 +26,7 @@ data class RationRequestDTO(
 @Serializable
 data class WishResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val wish: Wish
 )
 
@@ -36,7 +36,7 @@ data class WishResponseDTO(
 @Serializable
 data class ActivityResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val activityIndex: Float
 )
 
@@ -46,7 +46,7 @@ data class ActivityResponseDTO(
 @Serializable
 data class UserDataRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val username: String,
 )
 
@@ -56,7 +56,7 @@ data class UserDataRequestDTO(
 @Serializable
 data class UserDataResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: UserDTO,
 )
 
@@ -67,24 +67,25 @@ data class UserDataResponseDTO(
 data class UserDTO(
     val username: String,
     val name: String,
+    val age: Int,
     @Serializable(with = LocalDateSerializer::class)
     val birthDate: LocalDate,
     val gender: Gender,
-    val heightCm: Int,
-    val weightKg: Float,
+    val height: Int,
+    val weight: Float,
     val weightDesire: Wish,
 
     // Для расчёта калорий по одной из формул (Кетч-МакАрдла)
-    val bodyFatPercent: Double?,
+    val bodyFatPercent: Double? = null,
     // поля для более точного расчёта процента жира
-    val neck: UInt?,
-    val waist: UInt?,
-    val hips: UInt?,
-    val sumOfSkinfolds: UInt?,
+    val neck: UInt? = null,
+    val waist: UInt? = null,
+    val hips: UInt? = null,
+    val sumOfSkinfolds: UInt? = null,
 
     // предпочтительные калькуляторы (есть значения по умолчанию)
-    val preferredTDEECalculator: TDEECalculatorType?, // FAO по умолчанию
-    val preferredBodyFatCalculator: BodyFatCalculatorType? // BMI по умолчанию
+    val preferredTDEECalculator: TDEECalculatorType? = null, // FAO по умолчанию
+    val preferredBodyFatCalculator: BodyFatCalculatorType? = null // BMI по умолчанию
 )
 
 
@@ -92,7 +93,7 @@ data class UserDTO(
  * Представление кешированной между запросами строки
  */
 data class RationCacheDTO(
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
     val wish: Wish?,
     val type: MealType?,
@@ -105,7 +106,7 @@ data class RationCacheDTO(
 @Serializable
 data class RationResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dishSetDTO: DailyDishSetDTO
 )
 
@@ -121,7 +122,7 @@ enum class MealType { BREAKFAST, LUNCH, DINNER; }
 @Serializable
 data class UpdateRationRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
     val type: MealType,
 )

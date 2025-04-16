@@ -26,7 +26,7 @@ object RationCacheService {
     fun initQuery(request: RationRequestDTO): Int {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login) VALUES (?,?)")
-        statement.setObject(1, request.id)
+        statement.setObject(1, request.uuid)
         statement.setString(2, request.login)
         val res = statement.executeUpdate()
         statement.close()
@@ -43,7 +43,7 @@ object RationCacheService {
         val connection = Database.getPGConnection()
         val statement =
             connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
-        statement.setObject(1, request.id)
+        statement.setObject(1, request.uuid)
         statement.setString(2, request.login)
         statement.setString(3, request.type.name)
         val res = statement.executeUpdate()

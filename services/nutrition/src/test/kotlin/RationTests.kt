@@ -49,19 +49,19 @@ class RationTests {
         val testLogin = "test_user"
         val request = WishResponseDTO(UUID.randomUUID(), Wish.REMAIN)
 
-        every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
-            request.id, testLogin, null, null, null
+        every { rationCacheService.getByQueryId(request.uuid) } returns RationCacheDTO(
+            request.uuid, testLogin, null, null, null
         )
-        every { rationCacheService.saveWish(request.id, request.wish) } just Awaits
+        every { rationCacheService.saveWish(request.uuid, request.wish) } just Awaits
 
         val requestJSON = Json.encodeToString(request)
         rationController.afterFetchFromWeightHistoryService(requestJSON)
 
         verify {
-            rationCacheService.saveWish(request.id, request.wish)
+            rationCacheService.saveWish(request.uuid, request.wish)
             sendEvent(
                 "activity:request:ActivityIndex",
-                match { it == Json.encodeToString(RationRequestDTO(request.id, testLogin)) })
+                match { it == Json.encodeToString(RationRequestDTO(request.uuid, testLogin)) })
         }
     }
 
@@ -70,19 +70,19 @@ class RationTests {
         val testLogin = "test_user"
         val request = ActivityResponseDTO(UUID.randomUUID(), 1.2f)
 
-        every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
-            request.id, testLogin, Wish.REMAIN, null, null
+        every { rationCacheService.getByQueryId(request.uuid) } returns RationCacheDTO(
+            request.uuid, testLogin, Wish.REMAIN, null, null
         )
-        every { rationCacheService.saveActivity(request.id, request.activityIndex) } just Awaits
+        every { rationCacheService.saveActivity(request.uuid, request.activityIndex) } just Awaits
 
         val requestJSON = Json.encodeToString(request)
         rationController.afterFetchFromActivityService(requestJSON)
 
         verify {
-            rationCacheService.saveActivity(request.id, request.activityIndex)
+            rationCacheService.saveActivity(request.uuid, request.activityIndex)
             sendEvent(
                 "user_data:request:UserData",
-                match { it == Json.encodeToString(UserDataRequestDTO(request.id, testLogin)) })
+                match { it == Json.encodeToString(UserDataRequestDTO(request.uuid, testLogin)) })
         }
     }
 
@@ -116,11 +116,11 @@ class RationTests {
             10.0, 10.0, 10.0, 10.0
         )
 
-        every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
-            request.id, testLogin, Wish.REMAIN, null, 1.2f
+        every { rationCacheService.getByQueryId(request.uuid) } returns RationCacheDTO(
+            request.uuid, testLogin, Wish.REMAIN, null, 1.2f
         )
         every { decider.decide(user, Wish.REMAIN) } returns Result.success(response)
-        every { rationCacheService.clearQuery(request.id) } just Awaits
+        every { rationCacheService.clearQuery(request.uuid) } just Awaits
         every { historyService.addHistory(testLogin, response) } just Runs
 
         val requestJSON = Json.encodeToString(request)
@@ -128,7 +128,7 @@ class RationTests {
 
         verify {
             decider.decide(user, Wish.REMAIN)
-            rationCacheService.clearQuery(request.id)
+            rationCacheService.clearQuery(request.uuid)
             historyService.addHistory(testLogin, response)
             sendEvent("weight_history:request:WeightControlWish", match { it == Json.encodeToString(response) })
         }

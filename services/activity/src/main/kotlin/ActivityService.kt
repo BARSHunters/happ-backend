@@ -116,7 +116,7 @@ data class TrainingData(
 @Serializable
 data class RationRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
 )
 
@@ -126,7 +126,7 @@ data class RationRequestDTO(
 @Serializable
 data class ActivityResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val activityIndex: Float,
 )
 
@@ -272,11 +272,11 @@ class ActivityService(
     internal fun handleNutritionActivityIndexRequest(message: String) {
         try {
             val request = Json.decodeFromString<RationRequestDTO>(message)
-            val met: Double = fetchFromDatabase(request.login).map { it.met }[0]
+            val met: Double = try { fetchFromDatabase(request.login).map { it.met }[0] } catch (e: Exception) { 1.0 }
             val activityIndex = 1 + 0.05 * met
             sendEvent(
                 "activity:response:ActivityIndex",
-                Json.encodeToString(ActivityResponseDTO(UUID.randomUUID(), activityIndex.toFloat())),
+                Json.encodeToString(ActivityResponseDTO(request.uuid, activityIndex.toFloat())),
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)

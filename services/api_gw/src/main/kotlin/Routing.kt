@@ -195,10 +195,10 @@ fun Application.configureRouting() {
 
             get("/getNutritionMenu") {
                 val dto = RationRequestDTO(
-                    id = UUID.randomUUID(), login = getLogin()
+                    uuid = UUID.randomUUID(), login = getLogin()
                 )
                 val result =
-                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.id)) {
+                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.uuid)) {
                         sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
                     }
                 call.respond(result)
@@ -207,10 +207,10 @@ fun Application.configureRouting() {
             get("/getNutritionMenu/{date}") {
                 val date = call.parameters["date"]!!.toLocalDate()
                 val dto = HistoryRequestRationByDateDTO(
-                    id = UUID.randomUUID(), login = getLogin(), date = date
+                    uuid = UUID.randomUUID(), login = getLogin(), date = date
                 )
                 val result =
-                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.id)) {
+                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.uuid)) {
                         sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
                     }
                 call.respond(result)

@@ -119,7 +119,7 @@ data class NewWeightResponse(
  */
 @Serializable
 data class RationRequestDTO(
-    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val login: String,
 )
 
@@ -128,7 +128,7 @@ data class RationRequestDTO(
  */
 @Serializable
 data class WishResponseDTO(
-    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val wish: WeightDesire,
 )
 
@@ -137,19 +137,19 @@ data class WishResponseDTO(
  */
 @Serializable
 data class HistoryRequestDTO(
-    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val login: String,
     val days: Int = 30,
 )
 
 /**
  * Ответ от сервиса питания.
- * @property id Идентификатор пользователя.
+ * @property uuid Идентификатор пользователя.
  * @property rations Данные о питании.
  */
 @Serializable
 data class HistoryResponseDTO(
-    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val uuid: UUID,
     val rations: Map<String, HistoryRow>,
 )
 
@@ -225,7 +225,7 @@ class WeightHistoryService(
             val wish = fetchWeightControlWishFromDB(request.login)
             sendEvent(
                 "weight_history:response:WeightControlWish",
-                Json.encodeToString(WishResponseDTO(UUID.randomUUID(), wish))
+                Json.encodeToString(WishResponseDTO(request.uuid, wish))
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)
@@ -306,7 +306,7 @@ class WeightHistoryService(
     internal fun handleNutritionResponse(message: String) {
         try {
             val response = Json.decodeFromString<HistoryResponseDTO>(message)
-            if (response.id != nutritionUUID) return
+            if (response.uuid != nutritionUUID) return
             this.nutritionData = response.rations
             println("Nutrition data received")
         } catch (e: Exception) {
@@ -336,7 +336,7 @@ class WeightHistoryService(
             println("Result of request from API Gateway: $result")
             sendEvent(
                 "weight_history:response:WeightHistoryAndPrediction",
-                Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result))
+                Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result))
             )
         }
     }

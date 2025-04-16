@@ -61,7 +61,7 @@ object RationCacheService {
     fun saveWish(queryId: UUID, wish: Wish): Int {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("UPDATE nutrition.cache_ration SET wish = ? WHERE query_id = ?")
-        statement.setString(1, wish.name)
+        statement.setObject(1, wish, java.sql.Types.OTHER)
         statement.setObject(2, queryId)
         val res = statement.executeUpdate()
         statement.close()

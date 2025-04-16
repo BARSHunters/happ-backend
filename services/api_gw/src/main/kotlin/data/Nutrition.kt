@@ -1,15 +1,22 @@
 package com.example.data
 
+import kotlinx.serialization.Serializable
+import serializers.LocalDateSerializer
+import serializers.UUIDSerializer
 import java.time.LocalDate
 import java.util.*
 
+@Serializable
 data class RationRequestDTO(
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID,
     val login: String,
 )
 
+@Serializable
 data class UpdateRationRequestDTO(
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID,
     val login: String,
     val type: MealType,
 )
@@ -20,8 +27,11 @@ enum class MealType {
     DINNER
 }
 
+@Serializable
 data class HistoryRequestRationByDateDTO(
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID,
     val login: String,
+    @Serializable(with = LocalDateSerializer::class)
     val date: LocalDate,
 )

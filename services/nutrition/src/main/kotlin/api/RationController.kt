@@ -66,8 +66,7 @@ object RationController {
             sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
-        val def = RationCacheDTO(UUID.fromString(""), "", null, null, null)
-        val cache: RationCacheDTO = cacheRes.getOrDefault(def)
+        val cache: RationCacheDTO = cacheRes.getOrThrow()
 
         RationCacheService.saveWish(request.uuid, request.wish)
 
@@ -99,8 +98,7 @@ object RationController {
             sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
-        val def = RationCacheDTO(UUID.fromString(""), "", null, null, null)
-        val cache: RationCacheDTO = cacheRes.getOrDefault(def)
+        val cache: RationCacheDTO = cacheRes.getOrThrow()
 
         RationCacheService.saveActivity(request.uuid, request.activityIndex)
 
@@ -136,8 +134,7 @@ object RationController {
             sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
-        val def = RationCacheDTO(UUID.fromString(""), "", null, null, null)
-        val cache: RationCacheDTO = cacheRes.getOrDefault(def)
+        val cache: RationCacheDTO = cacheRes.getOrThrow()
 
         val user = User(request.dto, cache.activityIndex ?: throw NullPointerException("activity index is null"))
 

@@ -120,7 +120,9 @@ object HistoryService {
     fun addHistory(login: String, dishSet: DailyDishSetDTO) {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement(
-            """INSERT INTO nutrition.history VALUES
+            """INSERT INTO nutrition.history (login, date,
+                | breakfast, breakfast_weight, lunch, lunch_weight, dinner, dinner_weight,
+                | total_tdee, total_protein, total_fat, total_carbs) VALUES
             |(?,now(),?,?,?,?,?,?,?,?,?,?)
         """.trimMargin()
         )

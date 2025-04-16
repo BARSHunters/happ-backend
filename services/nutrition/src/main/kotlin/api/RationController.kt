@@ -10,6 +10,7 @@ import org.example.dto.*
 import org.example.model.User
 import org.example.service.HistoryService
 import org.example.service.RationCacheService
+import java.util.*
 
 /**
  * API для работы с генерацией рационов питания.
@@ -59,14 +60,14 @@ object RationController {
             return
         }
 
-        val cache: RationCacheDTO
-        try {
-            cache = RationCacheService.getByQueryId(request.uuid)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val cacheRes = RationCacheService.getByQueryId(request.uuid)
+        if (cacheRes.isFailure) {
+            // cacheRes.exceptionOrNull()?.printStackTrace()
             sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
+        val def = RationCacheDTO(UUID.fromString(""), "", null, null, null)
+        val cache: RationCacheDTO = cacheRes.getOrDefault(def)
 
         RationCacheService.saveWish(request.uuid, request.wish)
 
@@ -92,14 +93,14 @@ object RationController {
             return
         }
 
-        val cache: RationCacheDTO
-        try {
-            cache = RationCacheService.getByQueryId(request.uuid)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val cacheRes = RationCacheService.getByQueryId(request.uuid)
+        if (cacheRes.isFailure) {
+            // cacheRes.exceptionOrNull()?.printStackTrace()
             sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
+        val def = RationCacheDTO(UUID.fromString(""), "", null, null, null)
+        val cache: RationCacheDTO = cacheRes.getOrDefault(def)
 
         RationCacheService.saveActivity(request.uuid, request.activityIndex)
 
@@ -129,14 +130,14 @@ object RationController {
             return
         }
 
-        val cache: RationCacheDTO
-        try {
-            cache = RationCacheService.getByQueryId(request.uuid)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val cacheRes = RationCacheService.getByQueryId(request.uuid)
+        if (cacheRes.isFailure) {
+            // cacheRes.exceptionOrNull()?.printStackTrace()
             sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
+        val def = RationCacheDTO(UUID.fromString(""), "", null, null, null)
+        val cache: RationCacheDTO = cacheRes.getOrDefault(def)
 
         val user = User(request.dto, cache.activityIndex ?: throw NullPointerException("activity index is null"))
 

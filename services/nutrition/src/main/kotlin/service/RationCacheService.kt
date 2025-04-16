@@ -93,14 +93,15 @@ object RationCacheService {
      *
      * @param queryId UUID запроса кеш которого надо получить
      */
-    fun getByQueryId(queryId: UUID): RationCacheDTO {
+    fun getByQueryId(queryId: UUID): Result<RationCacheDTO> {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("SELECT * FROM nutrition.cache_ration WHERE query_id = ?")
         statement.setObject(1, queryId)
 
         val resultSet = statement.executeQuery()
         return if (resultSet.next()) {
-            RationCacheDTO(
+            Result.success(
+                RationCacheDTO(
                 resultSet.getObject("query_id", UUID::class.java),
                 resultSet.getString("login"),
                 try {
@@ -118,9 +119,10 @@ object RationCacheService {
                 } catch (e: Exception) {
                     null
                 },
+                )
             )
         } else {
-            throw Exception("No rows with query_id=$queryId")
+            Result.failure(Exception("No rows with query_id=$queryId"))
         }.also {
             resultSet.close()
             statement.close()

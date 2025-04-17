@@ -210,8 +210,8 @@ fun Application.configureRouting() {
                     uuid = UUID.randomUUID(), login = getLogin(), date = date
                 )
                 val result =
-                    getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.uuid)) {
-                        sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
+                    getResultFromMicroservice("nutrition:response:ration_by_date", resultCondition = uuidEquals(dto.uuid)) {
+                        sendEvent("nutrition:request:ration_by_date", Json.encodeToString(dto))
                     }
                 call.respond(result)
             }

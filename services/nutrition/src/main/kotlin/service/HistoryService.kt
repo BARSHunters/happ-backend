@@ -84,27 +84,25 @@ object HistoryService {
         statement.setString(1, login)
 
         val result = statement.executeQuery().use { rs ->
-            {
-                if (rs.next()) {
-                    HistoryFullDTO(
-                        rs.getString("login"),
-                        rs.getObject("date", LocalDate::class.java),
-                        rs.getLong("breakfast"),
-                        rs.getInt("breakfast_weight"),
-                        rs.getLong("lunch"),
-                        rs.getInt("lunch_weight"),
-                        rs.getLong("dinner"),
-                        rs.getInt("dinner_weight"),
-                        rs.getDouble("total_tdee"),
-                        rs.getDouble("total_protein"),
-                        rs.getDouble("total_fat"),
-                        rs.getDouble("total_carbs"),
-                    )
-                } else {
-                    throw Exception("No history found for today")
-                }
+            if (rs.next()) {
+                HistoryFullDTO(
+                    rs.getString("login"),
+                    rs.getObject("date", LocalDate::class.java),
+                    rs.getLong("breakfast"),
+                    rs.getInt("breakfast_weight"),
+                    rs.getLong("lunch"),
+                    rs.getInt("lunch_weight"),
+                    rs.getLong("dinner"),
+                    rs.getInt("dinner_weight"),
+                    rs.getDouble("total_tdee"),
+                    rs.getDouble("total_protein"),
+                    rs.getDouble("total_fat"),
+                    rs.getDouble("total_carbs"),
+                )
+            } else {
+                throw Exception("No history found for today")
             }
-        }()
+        }
 
         statement.close()
         connection.close()
@@ -156,25 +154,23 @@ object HistoryService {
         statement.setObject(2, date)
 
         val result = statement.executeQuery().use { rs ->
-            {
-                if (rs.next()) {
-                    DailyDishSetDTO(
-                        DishService.getDishById(rs.getLong("breakfast"))
-                            .adjustWeight(rs.getInt("breakfast_weight").toDouble()),
-                        DishService.getDishById(rs.getLong("lunch"))
-                            .adjustWeight(rs.getInt("lunch_weight").toDouble()),
-                        DishService.getDishById(rs.getLong("dinner"))
-                            .adjustWeight(rs.getInt("dinner_weight").toDouble()),
-                        rs.getDouble("total_tdee"),
-                        rs.getDouble("total_protein"),
-                        rs.getDouble("total_fat"),
-                        rs.getDouble("total_carbs"),
-                    )
-                } else {
-                    throw Exception("No history found for this user or date")
-                }
+            if (rs.next()) {
+                DailyDishSetDTO(
+                    DishService.getDishById(rs.getLong("breakfast"))
+                        .adjustWeight(rs.getInt("breakfast_weight").toDouble()),
+                    DishService.getDishById(rs.getLong("lunch"))
+                        .adjustWeight(rs.getInt("lunch_weight").toDouble()),
+                    DishService.getDishById(rs.getLong("dinner"))
+                        .adjustWeight(rs.getInt("dinner_weight").toDouble()),
+                    rs.getDouble("total_tdee"),
+                    rs.getDouble("total_protein"),
+                    rs.getDouble("total_fat"),
+                    rs.getDouble("total_carbs"),
+                )
+            } else {
+                throw Exception("No history found for this user or date")
             }
-        }()
+        }
 
         statement.close()
         connection.close()

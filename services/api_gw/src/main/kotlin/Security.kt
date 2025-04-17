@@ -7,7 +7,7 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import keydb.sendEvent
 import kotlinx.serialization.json.Json
-import java.util.UUID
+import java.util.*
 
 fun Application.configureSecurity() {
     install(Authentication) {
@@ -25,14 +25,15 @@ fun Application.configureSecurity() {
 
                 val request = TokenValidationRequest(uuid, token)
 
-                val validationResultRaw = getResultFromMicroservice("auth:response:JwtValidation", uuidEquals(uuid)) {
+                val validationResultRaw =
+                    getResultFromMicroservice("auth:response:JwtValidation", resultCondition = uuidEquals(uuid)) {
                     sendEvent("auth:request:JwtValidation", Json.encodeToString(request))
                 }
 
                 val validationResult = Json.decodeFromString<TokenValidationResponse>(validationResultRaw)
 
                 when (validationResult.message) {
-                    "valid" -> UserIdPrincipal(validationResult.name)
+                    "valid" -> UserIdPrincipal(validationResult.username)
                     else -> null
                 }
             }

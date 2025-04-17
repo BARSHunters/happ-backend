@@ -16,8 +16,8 @@ import java.time.Period
 enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Float) -> Calculator) {
     MIFFLIN({ user, activityIndex ->
         MifflinStJeor(
-            user.weightKg.toUInt(),
-            user.heightCm.toUInt(),
+            user.weight.toUInt(),
+            user.height.toUInt(),
             Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
             user.gender,
             activityIndex
@@ -25,8 +25,8 @@ enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Flo
     }),
     HARRIS({ user, activityIndex ->
         HarrisBenedict(
-            user.weightKg.toUInt(),
-            user.heightCm.toUInt(),
+            user.weight.toUInt(),
+            user.height.toUInt(),
             Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
             user.gender,
             activityIndex
@@ -34,7 +34,7 @@ enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Flo
     }),
     KATCH({ user, activityIndex ->
         KatchMcArdle(
-            user.weightKg.toUInt(),
+            user.weight.toUInt(),
             activityIndex,
             user.bodyFatPercent ?: user.preferredBodyFatCalculator?.calculator?.invoke(user)?.calculate()?.getOrNull()
             ?: BodyFatCalculatorType.BMI.calculator(user).calculate().getOrElse { 0.0 }
@@ -42,7 +42,7 @@ enum class TDEECalculatorType(val calculator: (user: UserDTO, activityIndex: Flo
     }),
     FAO({ user, activityIndex ->
         FAOWHO(
-            user.weightKg.toUInt(),
+            user.weight.toUInt(),
             Period.between(user.birthDate, LocalDate.now()).years.toUInt(),
             user.gender,
             activityIndex

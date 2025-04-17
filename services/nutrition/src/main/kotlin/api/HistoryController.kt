@@ -31,7 +31,7 @@ object HistoryController {
         sendEvent(
             "nutrition:response:CPFC", Json.encodeToString(
                 HistoryResponseDTO(
-                    request.id,
+                    request.uuid,
                     HistoryService.getHistoryTDEEForUser(request.login, request.days),
                 )
             )
@@ -57,7 +57,7 @@ object HistoryController {
         sendEvent(
             "nutrition:response:ration_by_date", Json.encodeToString(
                 RationResponseDTO(
-                    request.id,
+                    request.uuid,
                     HistoryService.getFromHistoryRationByDate(request.login, request.date),
                 )
             )

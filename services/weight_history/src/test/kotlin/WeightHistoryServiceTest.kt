@@ -84,7 +84,7 @@ class WeightHistoryServiceTest {
                 weightHistoryService.handleNutritionResponse(
                     Json.encodeToString(
                         HistoryResponseDTO(
-                            id = weightHistoryService.nutritionUUID,
+                            uuid = weightHistoryService.nutritionUUID,
                             rations =
                                 mapOf(
                                     "2023-10-01" to HistoryRow(2000.0, 100.0, 100.0, 100.0),

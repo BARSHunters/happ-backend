@@ -29,7 +29,7 @@ class UserProfileService {
         // Request user data (name, age, height, weight)
         val userDataRequest = """
             {
-                "id": "$id",
+                "uuid": "$id",
                 "username": "$username"
             }
         """.trimIndent()
@@ -50,14 +50,14 @@ class UserProfileService {
                 sendEvent("error", responseJson)
                 return
             }
-            val profile = pendingRequests[response.id] ?: return
+            val profile = pendingRequests[response.uuid] ?: return
             // Create profile from user data
             profile.name = response.dto.name
             profile.age = response.dto.age
             profile.height = response.dto.height
             profile.weight = response.dto.weight
-            pendingRequests.remove(response.id)
-            val responseWrapper = ResponseWrapper(response.id, profile)
+            pendingRequests.remove(response.uuid)
+            val responseWrapper = ResponseWrapper(response.uuid, profile)
             val json = Json.encodeToString(responseWrapper)
             sendEvent("social:response:GetUserProfile", json)
         } catch (e: Exception) {

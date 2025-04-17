@@ -87,4 +87,22 @@ class FriendshipRepository {
             friends
         }
     }
+
+    fun findPendingFriendship(receiverUsername: String): List<String> {
+        return SocialDatabase.getConnection().use { connection ->
+            val statement = connection.prepareStatement(
+                """
+                    SELECT * FROM friendships WHERE receiver_username = ? AND status = ?;
+                """.trimIndent()
+            )
+            statement.setString(1, receiverUsername)
+            statement.setString(2, FriendshipStatus.PENDING.toString())
+            val rs = statement.executeQuery()
+            val pendingFriends = mutableListOf<String>()
+            while (rs.next()) {
+                pendingFriends.add(rs.getString("sender_username"))
+            }
+            pendingFriends
+        }
+    }
 } 

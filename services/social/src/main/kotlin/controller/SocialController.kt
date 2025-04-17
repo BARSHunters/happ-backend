@@ -26,23 +26,24 @@ class SocialController(private val socialService: SocialService) {
         }
 
         try {
-            val success = socialService.proposeFriendship(request.id, request.dto)
+            val success = socialService.proposeFriendship(request.uuid, request.dto)
             if (success) {
                 val notification = Notification(
                     NotificationType.FRIEND_REQUEST, request.dto.receiverUsername,
                     NotificationPayload.FriendRequestPayload(friendName = request.dto.senderUsername)
                 )
+                println("Sending notification to the notify service $notification")
                 sendEvent("notify:request:SendNotification", Json.encodeToString(notification))
             } else {
                 val errorMessage = "Failed to send friend request"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                sendError(request.id, error)
+                sendError(request.uuid, error)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendError(request.id, error)
+            sendError(request.uuid, error)
         }
     }
 
@@ -59,17 +60,17 @@ class SocialController(private val socialService: SocialService) {
         }
 
         try {
-            val success = socialService.respondToFriendship(request.id, request.dto)
+            val success = socialService.respondToFriendship(request.uuid, request.dto)
             if (!success) {
                 val errorMessage = "Failed to ${request.dto.response} friend request"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                sendError(request.id, error)
+                sendError(request.uuid, error)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendError(request.id, error)
+            sendError(request.uuid, error)
         }
     }
 
@@ -86,12 +87,12 @@ class SocialController(private val socialService: SocialService) {
         }
 
         try {
-            socialService.getUserProfile(request.id, request.dto)
+            socialService.getUserProfile(request.uuid, request.dto)
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendError(request.id, error)
+            sendError(request.uuid, error)
         }
     }
 
@@ -109,16 +110,39 @@ class SocialController(private val socialService: SocialService) {
 
         try {
             val friendList = socialService.getFriendsList(request.dto)
-            if (friendList.isNotEmpty()) {
-                val friendsListResponse = FriendsListResponse(friendList, friendList.size)
-                val response = ResponseWrapper(request.id, friendsListResponse)
-                sendEvent("social:response:GetFriendsList", Json.encodeToString(response))
-            }
+            val friendsListResponse = FriendsListResponse(friendList, friendList.size)
+            val response = ResponseWrapper(request.uuid, friendsListResponse)
+            sendEvent("social:response:GetFriendsList", Json.encodeToString(response))
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendError(request.id, error)
+            sendError(request.uuid, error)
+        }
+    }
+
+    fun handleGetFriendRequests(requestBody: String) {
+        println("Get friend requests: $requestBody")
+        val request: RequestWrapper<String> = try {
+            Json.decodeFromString(requestBody)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendError(UUID.fromString("-1"), error)
+            return
+        }
+        try {
+            val pendingFriends = socialService.getFriendshipRequests(request.dto)
+            val friendsListResponse = FriendsListResponse(pendingFriends, pendingFriends.size)
+            val response = ResponseWrapper(request.uuid, friendsListResponse)
+            sendEvent("social:response:GetFriendsRequests", Json.encodeToString(response))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Internal Server Error"
+            val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
+            sendError(request.uuid, error)
+            return
         }
     }
 

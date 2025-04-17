@@ -10,6 +10,7 @@ import org.example.dto.*
 import org.example.model.User
 import org.example.service.HistoryService
 import org.example.service.RationCacheService
+import java.util.*
 
 /**
  * API для работы с генерацией рационов питания.
@@ -59,18 +60,17 @@ object RationController {
             return
         }
 
-        val cache: RationCacheDTO
-        try {
-            cache = RationCacheService.getByQueryId(request.id)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+        val cacheRes = RationCacheService.getByQueryId(request.uuid)
+        if (cacheRes.isFailure) {
+            // cacheRes.exceptionOrNull()?.printStackTrace()
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
+        val cache: RationCacheDTO = cacheRes.getOrThrow()
 
-        RationCacheService.saveWish(request.id, request.wish)
+        RationCacheService.saveWish(request.uuid, request.wish)
 
-        sendEvent("activity:request:ActivityIndex", Json.encodeToString(RationRequestDTO(request.id, cache.login)))
+        sendEvent("activity:request:ActivityIndex", Json.encodeToString(RationRequestDTO(request.uuid, cache.login)))
     }
 
     /**
@@ -92,18 +92,17 @@ object RationController {
             return
         }
 
-        val cache: RationCacheDTO
-        try {
-            cache = RationCacheService.getByQueryId(request.id)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+        val cacheRes = RationCacheService.getByQueryId(request.uuid)
+        if (cacheRes.isFailure) {
+            // cacheRes.exceptionOrNull()?.printStackTrace()
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
+        val cache: RationCacheDTO = cacheRes.getOrThrow()
 
-        RationCacheService.saveActivity(request.id, request.activityIndex)
+        RationCacheService.saveActivity(request.uuid, request.activityIndex)
 
-        sendEvent("user_data:request:UserData", Json.encodeToString(UserDataRequestDTO(request.id, cache.login)))
+        sendEvent("user_data:request:UserData", Json.encodeToString(UserDataRequestDTO(request.uuid, cache.login)))
     }
 
     /**
@@ -129,32 +128,37 @@ object RationController {
             return
         }
 
-        val cache: RationCacheDTO
-        try {
-            cache = RationCacheService.getByQueryId(request.id)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            sendEvent("error", Json.encodeToString(ErrorDTO(request.id, "Skipped stages for this query")))
+        val cacheRes = RationCacheService.getByQueryId(request.uuid)
+        if (cacheRes.isFailure) {
+            // cacheRes.exceptionOrNull()?.printStackTrace()
+            sendEvent("error", Json.encodeToString(ErrorDTO(request.uuid, "Skipped stages for this query")))
             return
         }
+        val cache: RationCacheDTO = cacheRes.getOrThrow()
 
         val user = User(request.dto, cache.activityIndex ?: throw NullPointerException("activity index is null"))
 
         val dishSet: DailyDishSetDTO = if (cache.type != null) {
             Decider.swap(user, cache.wish ?: Wish.KEEP, cache.type).getOrElse {
-                sendEvent("error", Json.encodeToString(ErrorDTO(request.id, it.message ?: "Couldn't generate ration")))
+                sendEvent(
+                    "error",
+                    Json.encodeToString(ErrorDTO(request.uuid, it.message ?: "Couldn't generate ration"))
+                )
                 return
             }
         } else {
             Decider.decide(user, cache.wish ?: Wish.KEEP).getOrElse {
-                sendEvent("error", Json.encodeToString(ErrorDTO(request.id, it.message ?: "Couldn't generate ration")))
+                sendEvent(
+                    "error",
+                    Json.encodeToString(ErrorDTO(request.uuid, it.message ?: "Couldn't generate ration"))
+                )
                 return
             }
         }
 
-        RationCacheService.clearQuery(request.id)
+        RationCacheService.clearQuery(request.uuid)
         HistoryService.addHistory(cache.login, dishSet)
-        sendEvent("nutrition:response:ration", Json.encodeToString(RationResponseDTO(request.id, dishSet)))
+        sendEvent("nutrition:response:ration", Json.encodeToString(RationResponseDTO(request.uuid, dishSet)))
     }
 
     /**
@@ -180,7 +184,7 @@ object RationController {
         RationCacheService.initUpdateQuery(request)
         sendEvent(
             "weight_history:request:WeightControlWish",
-            Json.encodeToString(RationRequestDTO(request.id, request.login))
+            Json.encodeToString(RationRequestDTO(request.uuid, request.login))
         )
     }
 }

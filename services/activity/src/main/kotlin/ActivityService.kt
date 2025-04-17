@@ -18,7 +18,7 @@ import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.*
 
 /**
  * Оболочка для поддержки запросов с UUID (Слава)
@@ -26,7 +26,7 @@ import java.util.UUID
 @Serializable
 data class RequestWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T,
 )
 
@@ -36,7 +36,7 @@ data class RequestWrapper<T>(
 @Serializable
 data class ResponseWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T,
 )
 
@@ -46,14 +46,18 @@ data class ResponseWrapper<T>(
 @Serializable
 data class GetterDto(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val username: String,
 )
 
 /**
  * Оболочка для общения с API Gateway (Кирилл А.)
  */
-data class UUIDWrapper<T>(val uuid: UUID, val dto: T)
+@Serializable
+data class UUIDWrapper<T>(
+    @Serializable(with = serializers.UUIDSerializer::class)
+    val uuid: UUID, val dto: T
+)
 
 @Serializable
 data class HeartRateEntry(val timestamp: Long, val heartRate: Int)
@@ -112,7 +116,7 @@ data class TrainingData(
 @Serializable
 data class RationRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
 )
 
@@ -122,7 +126,7 @@ data class RationRequestDTO(
 @Serializable
 data class ActivityResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val activityIndex: Float,
 )
 
@@ -142,7 +146,7 @@ data class APIGatewayToActivityRequest(
 class ActivityService(
     internal var url: String = "jdbc:postgresql://localhost:5432/trainingdb",
     internal var user: String = "postgres",
-    internal var password: String = "password",
+    internal var password: String = "postgres",
 ) {
     internal var userId: String = ""
     internal var trainingDate: String = ""
@@ -179,7 +183,7 @@ class ActivityService(
             }
         sendEvent(
             "activity:response:CaloriesBurned",
-            Json.encodeToString(ResponseWrapper(requestWrapper.id, ActivityResponse(userId, records))),
+            Json.encodeToString(ResponseWrapper(requestWrapper.uuid, ActivityResponse(userId, records))),
         )
     }
 
@@ -191,7 +195,7 @@ class ActivityService(
      */
     internal fun handleUserDataResponse(message: String) {
         val responseWrapper = Json.decodeFromString<ResponseWrapper<UserDataResponse>>(message)
-        if (responseWrapper.id != userDataUUID) return
+        if (responseWrapper.uuid != userDataUUID) return
         val response = responseWrapper.dto
         this.weight = response.weight
         this.age = response.age
@@ -213,7 +217,7 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestAddTraining(request.userId, request.jsonWorkout, request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result)))
         }
     }
 
@@ -231,7 +235,10 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestGetSomeTraining(userId = request.userId, trainingDate = request.trainingDate)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent(
+                "activity:response:GetSomeTraining",
+                Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result))
+            )
         }
     }
 
@@ -248,7 +255,10 @@ class ActivityService(
             val request = requestWrapper.dto
             val result = processRequestGetAllTraining(request.userId)
             println("Result of request from API Gateway: $result")
-            sendEvent("activity:response:GetAllTrainings", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
+            sendEvent(
+                "activity:response:GetAllTrainings",
+                Json.encodeToString(UUIDWrapper(requestWrapper.uuid, result))
+            )
         }
     }
 
@@ -262,11 +272,11 @@ class ActivityService(
     internal fun handleNutritionActivityIndexRequest(message: String) {
         try {
             val request = Json.decodeFromString<RationRequestDTO>(message)
-            val met: Double = fetchFromDatabase(request.login).map { it.met }[0]
+            val met: Double = try { fetchFromDatabase(request.login).map { it.met }[0] } catch (e: Exception) { 1.0 }
             val activityIndex = 1 + 0.05 * met
             sendEvent(
                 "activity:response:ActivityIndex",
-                Json.encodeToString(ActivityResponseDTO(UUID.randomUUID(), activityIndex.toFloat())),
+                Json.encodeToString(ActivityResponseDTO(request.uuid, activityIndex.toFloat())),
             )
         } catch (e: Exception) {
             throw RuntimeException("Failed to handle nutrition wish request", e)

@@ -38,8 +38,9 @@ class AuthController(private val userService: UserService) {
                 val token = userService.register(registerDto.username, registerDto.password)
                 if (token != null) {
                     val response = LoginResponse(jwt = token)
-                    sendResponse("auth:response:Register", registerRequest.id, response)
-                    val userDataRequest = UserDataDto(
+                    sendResponse("auth:response:Register", registerRequest.uuid, response)
+                    val userDataRequest = RequestWrapper(
+                        UUID.randomUUID(), UserDataDto(
                         username = registerDto.username,
                         name = registerDto.name,
                         birthDate = registerDto.birthDate,
@@ -47,23 +48,24 @@ class AuthController(private val userService: UserService) {
                         heightCm = registerDto.heightCm,
                         weightKg = registerDto.weightKg,
                         weightDesire = registerDto.weightDesire
+                        )
                     )
                     sendRequest("user_data:request:CreateUserData", userDataRequest)
                 } else {
                     val errorMessage = "User with this username already exists"
                     val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                    sendError(registerRequest.id, error)
+                    sendError(registerRequest.uuid, error)
                 }
             } else {
                 val errorMessage = "Data is not valid"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                sendError(registerRequest.id, error)
+                sendError(registerRequest.uuid, error)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendError(registerRequest.id, error)
+            sendError(registerRequest.uuid, error)
         }
     }
 
@@ -85,28 +87,28 @@ class AuthController(private val userService: UserService) {
                 val token = userService.login(loginDto.username, loginDto.password)
                 if (token != null) {
                     val response = LoginResponse(jwt = token)
-                    sendResponse("auth:response:Login", loginRequest.id, response)
+                    sendResponse("auth:response:Login", loginRequest.uuid, response)
 
                 } else {
                     val errorMessage = "User unauthorized!"
                     val error = ErrorDto(ErrorType.UNAUTHORIZED, errorMessage)
-                    sendError(loginRequest.id, error)
+                    sendError(loginRequest.uuid, error)
 
                 }
             } else {
                 val errorMessage = "Data is not valid"
                 val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
-                sendError(loginRequest.id, error)
+                sendError(loginRequest.uuid, error)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             val errorMessage = "Internal Server Error"
             val error = ErrorDto(ErrorType.INTERNAL_SERVER_ERROR, errorMessage)
-            sendError(loginRequest.id, error)
+            sendError(loginRequest.uuid, error)
         }
     }
 
-    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: UserDataDto) {
+    private fun sendRequest(@Suppress("SameParameterValue") channel: String, dto: RequestWrapper<UserDataDto>) {
         val requestJson = Json.encodeToString(dto)
         sendEvent(channel, requestJson)
     }

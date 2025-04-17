@@ -45,8 +45,8 @@ class User(
 
     constructor(dto: UserDTO, activityIndex: Float) : this(
         dto.username,
-        dto.weightKg.toUInt(),
-        dto.heightCm.toUInt(),
+        dto.weight.toUInt(),
+        dto.height.toUInt(),
         Period.between(dto.birthDate, LocalDate.now()).years.toUInt(),
         dto.gender,
         activityIndex,

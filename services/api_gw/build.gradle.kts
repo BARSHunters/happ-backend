@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
@@ -33,6 +32,12 @@ dependencies {
     implementation(libs.ktor.server.config.yaml)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
+}
+
+configurations {
+    all {
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
 }
 
 // Конфигурация ktlint

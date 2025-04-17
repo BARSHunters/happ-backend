@@ -12,7 +12,7 @@ import java.util.*
 @Serializable
 data class HistoryRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
     val days: Int,
 )
@@ -34,7 +34,7 @@ data class HistoryRow(
 @Serializable
 data class HistoryResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val rations: Map<String, HistoryRow>
 )
 
@@ -62,7 +62,7 @@ data class HistoryFullDTO(
 @Serializable
 data class HistoryRequestRationByDateDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
     @Serializable(with = LocalDateSerializer::class)
     val date: LocalDate,

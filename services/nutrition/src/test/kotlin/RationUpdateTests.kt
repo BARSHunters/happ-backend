@@ -32,7 +32,7 @@ class RationUpdateTests {
     fun `init ration update request test`() {
         val testLogin = "test_user"
         val request = UpdateRationRequestDTO(UUID.randomUUID(), testLogin, MealType.BREAKFAST)
-        val nextReq = RationRequestDTO(request.id, request.login)
+        val nextReq = RationRequestDTO(request.uuid, request.login)
 
         every { rationCacheService.initQuery(nextReq) } just Awaits
 
@@ -80,11 +80,11 @@ class RationUpdateTests {
             10.0, 10.0, 10.0, 10.0
         )
 
-        every { rationCacheService.getByQueryId(request.id) } returns RationCacheDTO(
-            request.id, testLogin, Wish.REMAIN, MealType.BREAKFAST, 1.2f // тут
+        every { rationCacheService.getByQueryId(request.uuid) } returns RationCacheDTO(
+            request.uuid, testLogin, Wish.REMAIN, MealType.BREAKFAST, 1.2f // тут
         )
         every { decider.swap(user, Wish.REMAIN, MealType.BREAKFAST) } returns Result.success(response) // тут
-        every { rationCacheService.clearQuery(request.id) } just Awaits
+        every { rationCacheService.clearQuery(request.uuid) } just Awaits
         every { historyService.addHistory(testLogin, response) } just Runs
 
         val requestJSON = Json.encodeToString(request)
@@ -92,7 +92,7 @@ class RationUpdateTests {
 
         verify {
             decider.swap(user, Wish.REMAIN, MealType.BREAKFAST) // тут
-            rationCacheService.clearQuery(request.id)
+            rationCacheService.clearQuery(request.uuid)
             historyService.addHistory(testLogin, response)
             sendEvent("weight_history:request:WeightControlWish", match { it == Json.encodeToString(response) })
         }

@@ -8,8 +8,7 @@ import java.sql.Statement
 import kotlin.system.exitProcess
 
 object Database {
-
-    private val dotenv = dotenv()
+    private val dotenv = dotenv { /* directory = "./services/auth" */ }
     private val dbUrl = dotenv["DB_URL"]
     private val dbUser = dotenv["DB_USER"]
     private val dbPassword = dotenv["DB_PASSWORD"]

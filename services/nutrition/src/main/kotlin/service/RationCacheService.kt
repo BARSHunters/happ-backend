@@ -26,7 +26,7 @@ object RationCacheService {
     fun initQuery(request: RationRequestDTO): Int {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login) VALUES (?,?)")
-        statement.setObject(1, request.id)
+        statement.setObject(1, request.uuid)
         statement.setString(2, request.login)
         val res = statement.executeUpdate()
         statement.close()
@@ -43,7 +43,7 @@ object RationCacheService {
         val connection = Database.getPGConnection()
         val statement =
             connection.prepareStatement("INSERT INTO nutrition.cache_ration (query_id, login, meal_type) VALUES (?,?,?)")
-        statement.setObject(1, request.id)
+        statement.setObject(1, request.uuid)
         statement.setString(2, request.login)
         statement.setString(3, request.type.name)
         val res = statement.executeUpdate()
@@ -61,7 +61,7 @@ object RationCacheService {
     fun saveWish(queryId: UUID, wish: Wish): Int {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("UPDATE nutrition.cache_ration SET wish = ? WHERE query_id = ?")
-        statement.setString(1, wish.name)
+        statement.setObject(1, wish, java.sql.Types.OTHER)
         statement.setObject(2, queryId)
         val res = statement.executeUpdate()
         statement.close()
@@ -93,14 +93,15 @@ object RationCacheService {
      *
      * @param queryId UUID запроса кеш которого надо получить
      */
-    fun getByQueryId(queryId: UUID): RationCacheDTO {
+    fun getByQueryId(queryId: UUID): Result<RationCacheDTO> {
         val connection = Database.getPGConnection()
         val statement = connection.prepareStatement("SELECT * FROM nutrition.cache_ration WHERE query_id = ?")
         statement.setObject(1, queryId)
 
         val resultSet = statement.executeQuery()
         return if (resultSet.next()) {
-            RationCacheDTO(
+            Result.success(
+                RationCacheDTO(
                 resultSet.getObject("query_id", UUID::class.java),
                 resultSet.getString("login"),
                 try {
@@ -118,9 +119,10 @@ object RationCacheService {
                 } catch (e: Exception) {
                     null
                 },
+                )
             )
         } else {
-            throw Exception("No rows with query_id=$queryId")
+            Result.failure(Exception("No rows with query_id=$queryId"))
         }.also {
             resultSet.close()
             statement.close()

@@ -20,7 +20,7 @@ fun Application.configureRouting() {
             val result = getResultFromMicroservice("channel", resultCondition = { true }) {
                 sendEvent("echo", call.parameters["phrase"]!!)
             }
-            call.respond(result)
+            call.respond(crutchRemoveUUIDFromResponse(result))
         }
 
         post("/login") {
@@ -31,7 +31,7 @@ fun Application.configureRouting() {
                 sendEvent("auth:request:Login", Json.encodeToString(uuidWrapper))
             }
             // result.substring(53..<result.length - 1) - successfully result
-            call.respond(result)
+            call.respond(crutchRemoveUUIDFromResponse(result))
         }
 
         post("/register") {
@@ -41,7 +41,7 @@ fun Application.configureRouting() {
             ) {
                 sendEvent("auth:request:Register", Json.encodeToString(uuidWrapper))
             }
-            call.respond(result)
+            call.respond(crutchRemoveUUIDFromResponse(result))
         }
 
         authenticate("auth-bearer") {
@@ -50,6 +50,7 @@ fun Application.configureRouting() {
                 val phoneId = call.receiveText()
                 val request = NotifyRegisterPhone(name, phoneId)
                 sendEvent("notify:request:registerDevice", Json.encodeToString(request))
+                call.respond(HttpStatusCode.Created)
             }
 
             post("/logout") {
@@ -59,7 +60,7 @@ fun Application.configureRouting() {
                 ) {
                     sendEvent("auth:request:JwtRevoke", Json.encodeToString(tokenDto))
                 }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getUserInfo") {
@@ -69,7 +70,7 @@ fun Application.configureRouting() {
                     getResultFromMicroservice("user_data:response:UserData", resultCondition = uuidEquals(dto.uuid)) {
                         sendEvent("user_data:request:UserData", Json.encodeToString(dto))
                     }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             post("/updateInfo") {
@@ -87,7 +88,7 @@ fun Application.configureRouting() {
                 ) {
                     sendEvent("social:request:GetUserProfile", Json.encodeToString(request))
                 }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getFriends") {
@@ -98,15 +99,15 @@ fun Application.configureRouting() {
                 ) {
                     sendEvent("social:request:GetFriendsList", Json.encodeToString(request))
                 }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getAchievements") {
-                TODO()
+                call.respond(HttpStatusCode.NotImplemented)
             }
 
             get("/getAchievements/{username}") {
-                TODO()
+                call.respond(HttpStatusCode.NotImplemented)
             }
 
             get("/getFriendsRequests") {
@@ -118,7 +119,7 @@ fun Application.configureRouting() {
                     sendEvent("social:request:GetFriendsRequests", Json.encodeToString(request))
                 }
 
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             post("/addFriend/{username}") {
@@ -165,7 +166,7 @@ fun Application.configureRouting() {
                     sendEvent("weight_history:request:WeightHistoryAndPrediction", Json.encodeToString(request))
                 }
 
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getActivities") {
@@ -177,7 +178,7 @@ fun Application.configureRouting() {
                 ) {
                     sendEvent("activity:request:GetAllTrainings", Json.encodeToString(request))
                 }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             post("/newActivity") {
@@ -190,7 +191,7 @@ fun Application.configureRouting() {
                 ) {
                     sendEvent("activity:request:AddTraining", Json.encodeToString(request))
                 }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getNutritionMenu") {
@@ -201,7 +202,7 @@ fun Application.configureRouting() {
                     getResultFromMicroservice("nutrition:response:today_ration", resultCondition = uuidEquals(dto.uuid)) {
                         sendEvent("nutrition:request:today_ration", Json.encodeToString(dto))
                     }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getNutritionMenu/{date}") {
@@ -213,11 +214,11 @@ fun Application.configureRouting() {
                     getResultFromMicroservice("nutrition:response:ration_by_date", resultCondition = uuidEquals(dto.uuid)) {
                         sendEvent("nutrition:request:ration_by_date", Json.encodeToString(dto))
                     }
-                call.respond(result)
+                call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
             get("/getNutritionMenus") {
-                TODO()
+                call.respond(HttpStatusCode.NotImplemented)
             }
         }
     }
@@ -226,3 +227,5 @@ fun Application.configureRouting() {
 fun RoutingContext.getLogin() = call.principal<UserIdPrincipal>()?.name!!
 
 fun String.toLocalDate(): LocalDate = LocalDate.parse(this)
+
+fun crutchRemoveUUIDFromResponse(result: String) = result.substring(53..<result.length - 1)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-services=("activity" "api_gw" "auth" "echo" "social" "userData" "weight_history")
+services=("activity" "api_gw" "auth" "echo" "nutrition" "social" "userData" "weight_history")
 pids=()
 
 mkdir -p logs

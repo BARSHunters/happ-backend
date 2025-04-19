@@ -3,6 +3,11 @@ package org.example
 import keydb.runServiceListener
 import org.example.api.HistoryController
 import org.example.api.RationController
+import org.example.service.DishService
+import org.example.service.HistoryService
+import org.example.service.RationCacheService
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 
 /**
@@ -12,7 +17,12 @@ import org.example.api.RationController
  */
 fun afterStartup() {
     try {
+        val logger: Logger = LoggerFactory.getLogger(Database::class.java)
         Database
+        HistoryService
+        RationCacheService
+        DishService
+        logger.info("Nutrition is running!")
     } catch (e: Exception) {
         System.err.println("Exception thrown while trying to connect to the database")
         System.err.println(e.message)

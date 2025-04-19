@@ -94,6 +94,22 @@ class UserDataController(private val userDataService: UserDataService) {
         }
     }
 
+    fun handleSearchByName(requestBody: String) {
+        println(requestBody)
+        val request: GetterDto = try {
+            Json.decodeFromString<GetterDto>(requestBody)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            val errorMessage = "Invalid JSON format"
+            val error = ErrorDto(ErrorType.BAD_REQUEST, errorMessage)
+            sendResponse("error", UUID.fromString("-1"), error)
+            return
+        }
+        val username = request.username
+        val userList = userDataService.searchListName(username)
+        sendResponse("user_data:response:SearchByName", request.uuid, userList)
+    }
+
     fun receiveUserData(requestBody: String) {
         println("Get user data request $requestBody")
         val request: GetterDto = try {

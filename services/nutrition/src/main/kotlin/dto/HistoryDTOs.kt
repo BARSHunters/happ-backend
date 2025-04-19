@@ -14,7 +14,7 @@ data class HistoryRequestDTO(
     @Serializable(with = UUIDSerializer::class)
     val uuid: UUID,
     val login: String,
-    val days: Int,
+    val days: Int = 30,
 )
 
 /**

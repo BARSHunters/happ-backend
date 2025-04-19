@@ -574,7 +574,7 @@ class WeightHistoryService(
         try {
             nutritionDataReceived = CompletableDeferred()
             nutritionUUID = UUID.randomUUID()
-            sendEvent("nutrition:request:CPFC", Json.encodeToString(HistoryRequestDTO(nutritionUUID, username)))
+            sendEvent("nutrition:request:CPFC", Json.encodeToString(HistoryRequestDTO(nutritionUUID, username,30)))
             println("Nutrition data requested for user: $username")
             nutritionDataReceived.await()
         } catch (e: Exception) {

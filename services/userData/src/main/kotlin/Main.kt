@@ -23,6 +23,10 @@ fun updateUserData(requestBody: String) {
     userDataController.handleUpdateUserData(requestBody)
 }
 
+fun searchByName(requestBody: String) {
+    userDataController.handleSearchByName(requestBody)
+}
+
 fun getUserData(requestBody: String) {
     userDataController.receiveUserData(requestBody)
 }
@@ -59,6 +63,7 @@ fun main(): Unit = runServiceListener(
     mapOf(
         "user_data:request:CreateUserData" to ::createUserData,
         "user_data:request:UpdateUserData" to ::updateUserData,
+        "user_data:request:SearchByName" to ::searchByName,
         "user_data:request:UserData" to ::getUserData,
         "user_data:request:Name" to ::getName,
         "user_data:request:Gender" to ::getGender,

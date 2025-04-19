@@ -15,6 +15,9 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 data class RequestData(val requestIndex: Long, val responseTimeMs: Long)
 
@@ -136,6 +139,7 @@ class TestClient(
         }
     }
 
+    @Suppress("unused")
     private suspend fun addActivity(): Boolean {
         val heartRates = ArrayList<HeartRate>().apply {
             add(HeartRate(timestamp = 1700000000, heartRate = 120))
@@ -198,9 +202,7 @@ class TestClient(
     }
 
     suspend fun run() {
-        if (register() || login()) {
-            delay(random.nextLong(500, 2000))
-            addActivity()
+        if (login() || register()) {
             delay(random.nextLong(500, 2000))
             changeWeight()
         } else {
@@ -230,28 +232,39 @@ fun main() = runBlocking {
     }
 
     val dataCollector = DataCollector()
-    val activeRequests = AtomicInteger(0) // Счетчик активных запросов для мониторинга
+    val activeRequests = AtomicInteger(0) // Счетчик активных запросов
+    val totalRequests = AtomicInteger(0) // Общий счетчик запросов
+    val maxRequests = 10_000 // Лимит запросов
+    val maxDuration = 20.minutes // Лимит времени
+    val startTime = System.currentTimeMillis()
 
     try {
-        val numberOfClients = 10000
-        val batchSize = 10
-        val batchDelay = 500L // Уменьшенная задержка между батчами для плавной нагрузки
-        val maxConcurrentRequests = 50 // Максимум одновременных запросов
+        val numberOfClients = 5000
+        val batchSize = 20
+        val batchDelay = 500L
+        val maxConcurrentRequests = 50
 
         val clients = List(numberOfClients) { TestClient(it, httpClient, dataCollector = dataCollector) }
         val random = Random(System.currentTimeMillis())
 
-        // Функция для запуска батча клиентов с ограничением одновременных запросов
+        // Проверка лимитов
+        fun canContinue(): Boolean {
+            val elapsedTime = (System.currentTimeMillis() - startTime).toDuration(DurationUnit.MILLISECONDS)
+            return totalRequests.get() < maxRequests && elapsedTime < maxDuration
+        }
+
+        // Функция для запуска батча клиентов
         suspend fun runBatch(chunk: List<TestClient>) {
             chunk.map { client ->
                 launch(Dispatchers.IO) {
-                    // Ожидание, если слишком много активных запросов
+                    if (!canContinue()) return@launch
                     while (activeRequests.get() >= maxConcurrentRequests) {
                         delay(100)
                     }
                     activeRequests.incrementAndGet()
                     try {
                         client.run()
+                        totalRequests.incrementAndGet()
                     } catch (e: Exception) {
                         println("Error in client: ${e.message}")
                     } finally {
@@ -263,16 +276,19 @@ fun main() = runBlocking {
 
         // Первый этап: запуск всех клиентов по батчам
         clients.chunked(batchSize).forEach { chunk ->
+            if (!canContinue()) return@forEach
             runBatch(chunk)
             delay(batchDelay)
         }
 
-        // Второй этап: случайные запросы с контролируемой нагрузкой
-        while (isActive) {
+        // Второй этап: случайные запросы
+        while (canContinue()) {
             val selectedClients = clients.shuffled(random).take(batchSize)
             runBatch(selectedClients)
-            delay(random.nextLong(1000, 3000)) // Уменьшенная случайная задержка
+            delay(random.nextLong(1000, 3000))
         }
+
+        println("Test stopped. Total requests: ${totalRequests.get()}, Duration: ${(System.currentTimeMillis() - startTime).toDuration(DurationUnit.MILLISECONDS)}")
     } catch (e: CancellationException) {
         println("Test cancelled: ${e.message}")
     } catch (e: Exception) {

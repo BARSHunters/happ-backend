@@ -63,6 +63,16 @@ fun Application.configureRouting() {
                 call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
+            get("/searchByName/{name}") {
+                val getterDto = GetterDto(UUID.randomUUID(), call.parameters["name"]!!)
+                val result = getResultFromMicroservice(
+                    "user_data:response:SearchByName", "error", resultCondition = uuidEquals(getterDto.uuid)
+                ) {
+                    sendEvent("user_data:request:SearchByName", Json.encodeToString(getterDto))
+                }
+                call.respond(crutchRemoveUUIDFromResponse(result))
+            }
+
             get("/getUserInfo") {
                 val dto = UserDataRequest(UUID.randomUUID(), getLogin())
                 println(dto)

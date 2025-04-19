@@ -23,3 +23,11 @@ data class UserDataDTO(
     val weightKg: Float,
     val weightDesire: WeightDesire
 )
+
+@Serializable
+data class GetterDto(
+    @Serializable(with = UUIDSerializer::class)
+    val uuid: UUID,
+    val username: String,
+)
+

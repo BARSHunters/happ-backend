@@ -67,7 +67,7 @@ data class WorkoutData(val duration: String, val heartRates: List<HeartRateEntry
 
 @Serializable
 data class ActivityResponse(
-    val userId: String,
+    val username: String,
     val activities: List<ActivityRecord>,
 )
 

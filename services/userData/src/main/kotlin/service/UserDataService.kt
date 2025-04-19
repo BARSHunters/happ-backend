@@ -4,6 +4,7 @@ import model.Gender
 import model.UserData
 import model.WeightDesire
 import model.response.UserDataResponse
+import model.response.UserDto
 import repository.UserRepository
 import java.time.LocalDate
 
@@ -46,6 +47,11 @@ class UserDataService(private val userRepository: UserRepository) {
             return userRepository.updateUserFields(userData.username, updatedFields)
         }
         return false
+    }
+
+    fun searchListName(username: String): List<UserDto> {
+        val listUsers = userRepository.searchListName(username.lowercase())
+        return listUsers.map { UserDto(it.username, it.name) }
     }
 
     fun getUserData(username: String): UserDataResponse? {

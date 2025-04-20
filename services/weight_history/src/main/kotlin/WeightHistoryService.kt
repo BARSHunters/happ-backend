@@ -283,7 +283,6 @@ class WeightHistoryService(
             this.age = response.age
             this.username = response.username
             validateWeight(response.weight)
-            saveWeightToDB(username, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
             this.gender = response.gender
             this.height = response.height
             println("User data received: $response")

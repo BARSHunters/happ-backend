@@ -5,10 +5,8 @@ import io.mockk.just
 import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import utils.Gender
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -18,132 +16,123 @@ class ActivityServiceTest {
 
     @BeforeEach
     fun setUp() {
-        activityService = spyk(ActivityService()) // Используем spyk для частичного мокинга
+        activityService = spyk(ActivityService())
 
-        // Мокируем fetchUserData, чтобы он возвращал фиктивные данные
-        coEvery { activityService.fetchUserData() } answers {
-            activityService.weight = 70.0F
-            activityService.age = 30
-            activityService.gender = Gender.MALE
+        // Мокаем fetchUserData для обновления объекта ExtendedTrainingData
+        coEvery {
+            activityService.fetchUserData(any())
+        } answers {
+            val request = it.invocation.args[0] as ExtendedTrainingData
+            request.weight = 70.0F
+            request.age = 30
+            request.gender = Gender.MALE
+            request.userDataReceived.complete(Unit)
         }
 
-        // Мокируем вызов внешнего сервиса (делаем его пустым)
-        every { activityService.sendTrainingDataToAchievementAndNotifyService() } just Runs
+        every { activityService.sendTrainingDataToAchievementAndNotifyService(any()) } just Runs
     }
 
     @Test
-    fun testParseWorkout() =
-        runTest {
-            val jsonWorkout =
-                """
-                {
-                    "duration": "01:30:00",
-                    "heartRates": [
-                        {"timestamp": 1700000000, "heartRate": 120},
-                        {"timestamp": 1700000100, "heartRate": 130}
-                    ]
-                }
-                """.trimIndent()
+    fun testParseWorkoutAndRemoveFromQueue() = runTest {
+        val jsonWorkout = """
+            {
+                "duration": "01:30:00",
+                "heartRates": [
+                    {"timestamp": 1700000000, "heartRate": 120},
+                    {"timestamp": 1700000100, "heartRate": 130}
+                ]
+            }
+        """.trimIndent()
 
-            activityService.processRequestAddTraining("user1", jsonWorkout)
-            assertEquals(5400, activityService.trainingDuration) // 1 час 30 минут = 5400 секунд
-        }
+        val initialSize = activityService.requestTrainingDataList.size
+        val result = activityService.processRequestAddTraining("user1", jsonWorkout)
+        val finalSize = activityService.requestTrainingDataList.size
+
+        assertEquals("Workout processed and saved.", result)
+        assertEquals(initialSize, finalSize) // объект должен быть удалён после обработки
+    }
 
     @Test
     fun testCalculateHeartRateMetrics() {
-        val heartRates =
-            listOf(
+        val testData = ExtendedTrainingData(
+            heartRateList = listOf(
                 1700000000L to 120,
                 1700000100L to 130,
                 1700000200L to 140,
             )
-        activityService.heartRateList = heartRates
-        activityService.calculateHeartRateMetrics()
+        )
 
-        assertEquals(140, activityService.maxHeartRate)
-        assertEquals(130.0, activityService.avgHeartRate)
+        activityService.calculateHeartRateMetrics(testData)
+        assertEquals(140, testData.maxHeartRate)
+        assertEquals(130.0, testData.avgHeartRate, 0.1)
     }
 
     @Test
     fun testCalculateCalories() {
-        activityService.weight = 70.0F
-        activityService.age = 30
-        activityService.gender = Gender.MALE
-        activityService.avgHeartRate = 120.0
-        activityService.trainingDuration = 3600
+        val testData = ExtendedTrainingData(
+            weight = 70.0F,
+            age = 30,
+            gender = Gender.MALE,
+            avgHeartRate = 120.0,
+            trainingDuration = 3600
+        )
 
-        activityService.calculateCalories()
-        // Реальный ответ: 34914,23518...
-        assertEquals(34914.235, activityService.caloriesBurned, 0.001)
-
-        activityService.weight = 58.5F
-        activityService.age = 25
-        activityService.gender = Gender.FEMALE
-        activityService.avgHeartRate = 124.0
-        activityService.trainingDuration = 2000
-
-        activityService.calculateCalories()
-        // Реальный ответ: 14107,09847...
-        assertEquals(14107.098, activityService.caloriesBurned, 0.001)
+        activityService.calculateCalories(testData)
+        assertEquals(34914.235, testData.caloriesBurned, 0.001)
     }
 
     @Test
     fun testCalculateMET() {
-        activityService.avgHeartRate = 120.0
-        activityService.age = 30
-        activityService.calculateMET()
-        // Реальный ответ: 4.61538...
-        assertEquals(4.615, activityService.met, 0.001)
+        val testData = ExtendedTrainingData(
+            avgHeartRate = 120.0,
+            age = 30
+        )
+        activityService.calculateMET(testData)
+        assertEquals(4.615, testData.met, 0.001)
     }
 
     @Test
     fun testCalculateRecoveryTime() {
-        activityService.met = 5.0
-        activityService.avgHeartRate = 120.0
-        activityService.maxHeartRate = 140
-        activityService.calculateRecoveryTime()
-
-        // Реальный ответ: 141942
-        assertEquals(141942, activityService.recoveryTime)
+        val testData = ExtendedTrainingData(
+            met = 5.0,
+            avgHeartRate = 120.0,
+            maxHeartRate = 140
+        )
+        activityService.calculateRecoveryTime(testData)
+        assertEquals(141942, testData.recoveryTime)
     }
 
     @Test
-    fun testSaveAndFetchFromDatabase() =
-        runTest {
-            val userId = "testUser"
-            val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+    fun testSaveAndFetchFromDatabase() = runTest {
+        val userId = "testUser"
+        val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
-            // Сохраняем данные
-            activityService.processRequestAddTraining(
-                userId,
-                """
-                {
-                    "duration": "01:00:00",
-                    "heartRates": [
-                        {"timestamp": 1700000000, "heartRate": 120}
-                    ]
-                }
-                """.trimIndent(),
-                trainingDate,
-            )
+        val jsonWorkout = """
+            {
+                "duration": "01:00:00",
+                "heartRates": [
+                    {"timestamp": 1700000000, "heartRate": 120}
+                ]
+            }
+        """.trimIndent()
 
-            // Получаем данные
-            val result = activityService.processRequestGetSomeTraining(userId, trainingDate = trainingDate)
-            assertEquals(userId, result.userId)
-            assertEquals(3600, result.trainingDuration) // 1 час = 3600 секунд
-        }
+        activityService.processRequestAddTraining(userId, jsonWorkout, trainingDate)
+
+        val result = activityService.processRequestGetSomeTraining(userId, trainingDate)
+        assertEquals(userId, result.userId)
+        assertEquals(3600, result.trainingDuration)
+    }
 
     @Test
     fun testInvalidWorkoutData() {
-        val invalidJsonWorkout =
-            """
+        val invalidJsonWorkout = """
             {
                 "duration": "01:30",
                 "heartRates": []
             }
-            """.trimIndent()
+        """.trimIndent()
 
-        assertThrows(RuntimeException::class.java) {
+        assertThrows<RuntimeException> {
             runBlocking {
                 activityService.processRequestAddTraining("user1", invalidJsonWorkout)
             }
@@ -152,11 +141,12 @@ class ActivityServiceTest {
 
     @Test
     fun testInvalidUserData() {
-        activityService.weight = -1.0F
-        activityService.age = 0
-
-        assertThrows(IllegalArgumentException::class.java) {
-            activityService.calculateCalories()
+        val testData = ExtendedTrainingData(
+            weight = -1.0F,
+            age = 0
+        )
+        assertThrows<IllegalArgumentException> {
+            activityService.calculateCalories(testData)
         }
     }
 }

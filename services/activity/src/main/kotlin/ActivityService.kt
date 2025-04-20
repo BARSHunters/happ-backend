@@ -60,7 +60,13 @@ data class UUIDWrapper<T>(val uuid: UUID, val dto: T)
 data class HeartRateEntry(val timestamp: Long, val heartRate: Int)
 
 @Serializable
-data class WorkoutData(val duration: String, val heartRates: List<HeartRateEntry>)
+data class WorkoutData(
+    val duration: String,
+    val datetime: String,
+    val name: String,
+    val intensityZones: List<Int>,
+    val heartRates: List<HeartRateEntry>
+)
 
 @Serializable
 data class ActivityResponse(
@@ -98,12 +104,14 @@ data class UserDataResponse(
 @Serializable
 data class TrainingData(
     val username: String,
+    val trainingName: String,
     val trainingDate: String,
     val trainingDuration: Int,
     val avgHeartRate: Double,
     val maxHeartRate: Int,
     val caloriesBurned: Double,
     val met: Double,
+    val intensityZones: List<Int>,
     val recoveryTime: Int,
 )
 
@@ -111,6 +119,7 @@ data class TrainingData(
 data class ExtendedTrainingData(
     internal var username: String = "",
     var trainingDate: String = "",
+    var trainingName: String = "",
     var trainingDuration: Int = 0,
     var heartRateList: List<Pair<Long, Int>> = emptyList(),
     var avgHeartRate: Double = 0.0,
@@ -120,6 +129,7 @@ data class ExtendedTrainingData(
     var gender: Gender = Gender.MALE,
     var caloriesBurned: Double = 0.0,
     var met: Double = 0.0,
+    var intensityZones: List<Int> = emptyList(),
     var recoveryTime: Int = 0,
     var userDataReceived: CompletableDeferred<Unit> = CompletableDeferred(),
     var userDataUUID: UUID = UUID.randomUUID(),
@@ -149,13 +159,15 @@ data class ActivityResponseDTO(
  * Запрос от API Gateway
  * @param username Идентификатор пользователя.
  * @param jsonWorkout JSON-строка с данными о тренировке (опционально).
- * @param trainingDate Дата тренировки (опционально).
+ * @param startTrainingDate Начальная дата периода тренировок (опционально).
+ * @param endTrainingDate Конечная дата периода тренировок (опционально).
  */
 @Serializable
 data class APIGatewayToActivityRequest(
     val username: String,
     val jsonWorkout: String? = null,
-    val trainingDate: String? = null,
+    val startTrainingDate: String? = null,
+    val endTrainingDate: String? = null,
 )
 
 class ActivityService(
@@ -223,7 +235,7 @@ class ActivityService(
         CoroutineScope(Dispatchers.IO).launch {
             val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
             val request = requestWrapper.dto
-            val result = processRequestAddTraining(request.username, request.jsonWorkout, request.trainingDate)
+            val result = processRequestAddTraining(request.username, request.jsonWorkout)
             println("Result of request from API Gateway: $result")
             sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
@@ -241,7 +253,7 @@ class ActivityService(
         CoroutineScope(Dispatchers.IO).launch {
             val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
             val request = requestWrapper.dto
-            val result = processRequestGetSomeTraining(username = request.username, trainingDate = request.trainingDate)
+            val result = processRequestGetSomeTraining(username = request.username, startTrainingDate = request.startTrainingDate, endTrainingDate = request.endTrainingDate)
             println("Result of request from API Gateway: $result")
             sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
@@ -301,24 +313,20 @@ class ActivityService(
      * Обрабатывает запрос на добавление новой тренировки.
      * @param username Идентификатор пользователя.
      * @param jsonWorkout JSON-строка с данными о тренировке (опционально).
-     * @param trainingDate Дата тренировки (опционально).
      * @return Результат обработки запроса.
      */
     internal suspend fun processRequestAddTraining(
         username: String,
         jsonWorkout: String? = null,
-        trainingDate: String? = null,
     ): String {
         if (jsonWorkout != null) {
             val thisRequestTrainingData = ExtendedTrainingData()
             this.requestTrainingDataList.add(thisRequestTrainingData)
             thisRequestTrainingData.username = username
-            if (trainingDate != null) {
-                thisRequestTrainingData.trainingDate = trainingDate
-            } else {
+            parseWorkout(jsonWorkout, thisRequestTrainingData)
+            if (thisRequestTrainingData.trainingDate == "") {
                 thisRequestTrainingData.trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
             }
-            parseWorkout(jsonWorkout, thisRequestTrainingData)
             calculateHeartRateMetrics(thisRequestTrainingData)
             fetchUserData(thisRequestTrainingData)
             calculateCalories(thisRequestTrainingData)
@@ -336,14 +344,16 @@ class ActivityService(
     /**
      * Обрабатывает запрос на получение некоторой тренировки пользователя по дате.
      * @param username Идентификатор пользователя.
-     * @param trainingDate Дата тренировки (опционально).
+     * @param startTrainingDate Начальная дата периода тренировок (опционально).
+     * @param endTrainingDate Конечная дата периода тренировок (опционально).
      * @return Результат обработки запроса.
      */
     internal fun processRequestGetSomeTraining(
         username: String,
-        trainingDate: String? = null,
-    ): TrainingData {
-        return fetchFromDatabase(username, trainingDate)[0]
+        startTrainingDate: String? = null,
+        endTrainingDate: String? = null,
+    ): List<TrainingData> {
+        return fetchFromDatabase(username, startTrainingDate, endTrainingDate)
     }
 
     /**
@@ -380,8 +390,13 @@ class ActivityService(
 
             val parts = workout.duration.split(":").map { it.toInt() }
 
-            thisRequestTrainingData.trainingDuration = parts[0] * 3600 + parts[1] * 60 + parts[2] // Перевод в секунды
-            thisRequestTrainingData.heartRateList = workout.heartRates.map { it.timestamp to it.heartRate }
+            thisRequestTrainingData.apply {
+                trainingDuration = parts[0] * 3600 + parts[1] * 60 + parts[2]
+                trainingName = workout.name
+                trainingDate = workout.datetime
+                intensityZones = workout.intensityZones
+                heartRateList = workout.heartRates.map { it.timestamp to it.heartRate }
+            }
         } catch (e: SerializationException) {
             println("JSON decoding error: ${e.message}")
             throw RuntimeException("Failed to parse workout data", e)
@@ -495,12 +510,14 @@ class ActivityService(
             val trainingData =
                 TrainingData(
                     username = thisRequestTrainingData.username,
+                    trainingName = thisRequestTrainingData.trainingName,
                     trainingDate = thisRequestTrainingData.trainingDate,
                     trainingDuration = thisRequestTrainingData.trainingDuration,
                     avgHeartRate = thisRequestTrainingData.avgHeartRate,
                     maxHeartRate = thisRequestTrainingData.maxHeartRate,
                     caloriesBurned = thisRequestTrainingData.caloriesBurned,
                     met = thisRequestTrainingData.met,
+                    intensityZones = thisRequestTrainingData.intensityZones,
                     recoveryTime = thisRequestTrainingData.recoveryTime,
                 )
             sendEvent("achievement:request:TrainingData", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), trainingData)))
@@ -517,42 +534,56 @@ class ActivityService(
     internal fun saveToDatabase(thisRequestTrainingData: ExtendedTrainingData) {
         try {
             val connection = DriverManager.getConnection(url, user, password)
-            val statement =
-                connection.prepareStatement(
-                    """
+
+            // Обновляем запрос создания таблицы
+            val createTableStatement = connection.prepareStatement(
+                """
             CREATE TABLE IF NOT EXISTS activity (
                 user_id TEXT,
                 training_date TIMESTAMP,
                 training_duration INT,
+                training_name TEXT,                -- Новое поле
+                intensity_zones INT[],             -- Новое поле (массив целых чисел)
                 avg_heart_rate DOUBLE PRECISION,
                 max_heart_rate INT,
                 calories_burned DOUBLE PRECISION,
                 MET DOUBLE PRECISION,
                 recovery_time INT
             )
-        """,
-                )
-            statement.execute()
-            statement.close()
+            """
+            )
+            createTableStatement.execute()
+            createTableStatement.close()
 
-            val insertStatement =
-                connection.prepareStatement(
-                    """
-            INSERT INTO activity (user_id, training_date, training_duration, avg_heart_rate, max_heart_rate, calories_burned, MET, recovery_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-                )
-            insertStatement.setString(1, thisRequestTrainingData.username)
-            insertStatement.setTimestamp(2, Timestamp.valueOf(thisRequestTrainingData.trainingDate))
-            insertStatement.setInt(3, thisRequestTrainingData.trainingDuration)
-            insertStatement.setDouble(4, thisRequestTrainingData.avgHeartRate)
-            insertStatement.setInt(5, thisRequestTrainingData.maxHeartRate)
-            insertStatement.setDouble(6, thisRequestTrainingData.caloriesBurned)
-            insertStatement.setDouble(7, thisRequestTrainingData.met)
-            insertStatement.setInt(8, thisRequestTrainingData.recoveryTime)
+            // Обновляем запрос вставки данных
+            val insertStatement = connection.prepareStatement(
+                """
+            INSERT INTO activity (
+                user_id, training_date, training_duration, training_name,
+                intensity_zones, avg_heart_rate, max_heart_rate,
+                calories_burned, MET, recovery_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            ).apply {
+                setString(1, thisRequestTrainingData.username)
+                setTimestamp(2, Timestamp.valueOf(thisRequestTrainingData.trainingDate))
+                setInt(3, thisRequestTrainingData.trainingDuration)
+                setString(4, thisRequestTrainingData.trainingName)  // Новое поле
+
+                // Преобразуем List<Int> в SQL массив
+                val array = connection.createArrayOf("INTEGER",
+                    thisRequestTrainingData.intensityZones.toTypedArray())
+                setArray(5, array)
+
+                setDouble(6, thisRequestTrainingData.avgHeartRate)
+                setInt(7, thisRequestTrainingData.maxHeartRate)
+                setDouble(8, thisRequestTrainingData.caloriesBurned)
+                setDouble(9, thisRequestTrainingData.met)
+                setInt(10, thisRequestTrainingData.recoveryTime)
+            }
+
             insertStatement.executeUpdate()
             insertStatement.close()
-
             connection.close()
         } catch (e: SQLException) {
             println("Database error: ${e.message}")
@@ -563,19 +594,21 @@ class ActivityService(
     /**
      * Получает данные о тренировках пользователя из базы данных.
      * @param username Идентификатор пользователя.
-     * @param trainingDate Дата тренировки (опционально).
+     * @param startTrainingDate Начальная дата периода тренировок (опционально).
+     * @param endTrainingDate Конечная дата периода тренировок (опционально).
      * @return Список данных о тренировках.
      */
     internal fun fetchFromDatabase(
         username: String,
-        trainingDate: String? = null,
+        startTrainingDate: String? = null,
+        endTrainingDate: String? = null,
     ): List<TrainingData> {
         return try {
             val connection = DriverManager.getConnection(url, user, password)
 
             val query =
-                if (trainingDate != null) {
-                    "SELECT * FROM activity WHERE user_id = ? AND training_date = ?"
+                if (startTrainingDate != null && endTrainingDate != null) {
+                    "SELECT * FROM activity WHERE user_id = ? AND training_date BETWEEN ? AND ?"
                 } else {
                     "SELECT * FROM activity WHERE user_id = ?"
                 }
@@ -583,23 +616,35 @@ class ActivityService(
             val statement = connection.prepareStatement(query)
             statement.setString(1, username)
 
-            if (trainingDate != null) {
-                statement.setTimestamp(2, Timestamp.valueOf(trainingDate))
+            if (startTrainingDate != null) {
+                statement.setTimestamp(2, Timestamp.valueOf(startTrainingDate))
+            }
+            if (endTrainingDate != null) {
+                statement.setTimestamp(3, Timestamp.valueOf(endTrainingDate))
             }
 
             val resultSet = statement.executeQuery()
             val result = mutableListOf<TrainingData>()
 
             while (resultSet.next()) {
+                val intensityZonesArray = resultSet.getArray("intensity_zones")
+                val intensityZones = if (intensityZonesArray != null) {
+                    (intensityZonesArray.array as? Array<*>)?.filterIsInstance<Int>() ?: emptyList()
+                } else {
+                    emptyList()
+                }
+
                 val record =
                     TrainingData(
                         username = resultSet.getString("user_id"),
+                        trainingName = resultSet.getString("training_name"),
                         trainingDate = resultSet.getTimestamp("training_date").toString(),
                         trainingDuration = resultSet.getInt("training_duration"),
                         avgHeartRate = resultSet.getDouble("avg_heart_rate"),
                         maxHeartRate = resultSet.getInt("max_heart_rate"),
                         caloriesBurned = resultSet.getDouble("calories_burned"),
                         met = resultSet.getDouble("MET"),
+                        intensityZones = intensityZones,
                         recoveryTime = resultSet.getInt("recovery_time"),
                     )
                 result.add(record)

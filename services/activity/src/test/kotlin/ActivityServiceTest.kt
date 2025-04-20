@@ -6,10 +6,8 @@ import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.*
 import utils.Gender
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 class ActivityServiceTest {
     private lateinit var activityService: ActivityService
@@ -18,7 +16,6 @@ class ActivityServiceTest {
     fun setUp() {
         activityService = spyk(ActivityService())
 
-        // Мокаем fetchUserData для обновления объекта ExtendedTrainingData
         coEvery {
             activityService.fetchUserData(any())
         } answers {
@@ -30,6 +27,7 @@ class ActivityServiceTest {
         }
 
         every { activityService.sendTrainingDataToAchievementAndNotifyService(any()) } just Runs
+        every { activityService.saveToDatabase(any()) } just Runs
     }
 
     @Test
@@ -37,6 +35,9 @@ class ActivityServiceTest {
         val jsonWorkout = """
             {
                 "duration": "01:30:00",
+                "datetime": "2025-04-16 08:00:00",
+                "name": "Утренняя пробежка",
+                "intensityZones": [10, 15, 20, 10, 5],
                 "heartRates": [
                     {"timestamp": 1700000000, "heartRate": 120},
                     {"timestamp": 1700000100, "heartRate": 130}
@@ -49,7 +50,31 @@ class ActivityServiceTest {
         val finalSize = activityService.requestTrainingDataList.size
 
         assertEquals("Workout processed and saved.", result)
-        assertEquals(initialSize, finalSize) // объект должен быть удалён после обработки
+        assertEquals(initialSize, finalSize)
+    }
+
+    @Test
+    fun testParseWorkoutWithAllFields() {
+        val jsonWorkout = """
+            {
+                "duration": "01:30:00",
+                "datetime": "2025-04-16 08:00:00",
+                "name": "Интервальная тренировка",
+                "intensityZones": [5, 10, 15, 20, 10],
+                "heartRates": [
+                    {"timestamp": 1700000000, "heartRate": 120}
+                ]
+            }
+        """.trimIndent()
+
+        val testData = ExtendedTrainingData()
+        activityService.parseWorkout(jsonWorkout, testData)
+
+        assertEquals(5400, testData.trainingDuration)
+        assertEquals("2025-04-16 08:00:00", testData.trainingDate)
+        assertEquals("Интервальная тренировка", testData.trainingName)
+        assertEquals(listOf(5, 10, 15, 20, 10), testData.intensityZones)
+        assertEquals(listOf(1700000000L to 120), testData.heartRateList)
     }
 
     @Test
@@ -104,23 +129,59 @@ class ActivityServiceTest {
 
     @Test
     fun testSaveAndFetchFromDatabase() = runTest {
-        val userId = "testUser"
-        val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-
+        val username = "testUser"
+        val trainingDate = "2025-04-16 09:00:00"
         val jsonWorkout = """
-            {
-                "duration": "01:00:00",
-                "heartRates": [
-                    {"timestamp": 1700000000, "heartRate": 120}
-                ]
-            }
-        """.trimIndent()
+        {
+            "duration": "01:00:00",
+            "datetime": "$trainingDate",
+            "name": "Тестовая тренировка",
+            "intensityZones": [5, 10, 15],
+            "heartRates": [
+                {"timestamp": 1700000000, "heartRate": 120}
+            ]
+        }
+    """.trimIndent()
 
-        activityService.processRequestAddTraining(userId, jsonWorkout, trainingDate)
+        // Мокаем сохранение в БД
+        every { activityService.saveToDatabase(any()) } just Runs
 
-        val result = activityService.processRequestGetSomeTraining(userId, trainingDate)
-        assertEquals(userId, result.username)
-        assertEquals(3600, result.trainingDuration)
+        // Мокаем запрос к БД
+        every {
+            activityService.fetchFromDatabase(
+                eq(username),
+                eq("2025-04-16 00:00:00"),
+                eq("2025-04-16 23:59:59")
+            )
+        } returns listOf(
+            TrainingData(
+                username = username,
+                trainingName = "Тестовая тренировка",
+                trainingDate = trainingDate,
+                trainingDuration = 3600,
+                avgHeartRate = 120.0,
+                maxHeartRate = 140,
+                caloriesBurned = 300.0,
+                met = 5.0,
+                intensityZones = listOf(5, 10, 15),
+                recoveryTime = 86400
+            )
+        )
+
+        activityService.processRequestAddTraining(username, jsonWorkout)
+
+        val result = activityService.processRequestGetSomeTraining(
+            username,
+            "2025-04-16 00:00:00",
+            "2025-04-16 23:59:59"
+        )
+
+        assertFalse(result.isEmpty())
+        assertEquals(username, result[0].username)
+        assertEquals(3600, result[0].trainingDuration)
+        assertEquals("Тестовая тренировка", result[0].trainingName)
+        assertEquals(listOf(5, 10, 15), result[0].intensityZones)
+        assertEquals(86400, result[0].recoveryTime)
     }
 
     @Test
@@ -148,5 +209,62 @@ class ActivityServiceTest {
         assertThrows<IllegalArgumentException> {
             activityService.calculateCalories(testData)
         }
+    }
+
+    @Test
+    fun testFetchTrainingDataWithDateRange() = runTest {
+        val username = "rangeTestUser"
+
+        // Мокаем запрос к БД
+        every {
+            activityService.fetchFromDatabase(
+                eq(username),
+                any<String>(),
+                any<String>()
+            )
+        } returns listOf(
+            TrainingData(
+                username = username,
+                trainingName = "Утренняя пробежка",
+                trainingDate = "2025-04-16 08:00:00",
+                trainingDuration = 3600,
+                avgHeartRate = 120.0,
+                maxHeartRate = 140,
+                caloriesBurned = 300.0,
+                met = 5.0,
+                intensityZones = listOf(10, 15, 20),
+                recoveryTime = 86400 // 24 часа в секундах
+            ),
+            TrainingData(
+                username = username,
+                trainingName = "Вечерняя тренировка",
+                trainingDate = "2025-04-16 18:00:00",
+                trainingDuration = 1800,
+                avgHeartRate = 110.0,
+                maxHeartRate = 130,
+                caloriesBurned = 200.0,
+                met = 4.0,
+                intensityZones = listOf(5, 10, 15),
+                recoveryTime = 43200 // 12 часов в секундах
+            )
+        )
+
+        val result = activityService.processRequestGetSomeTraining(
+            username,
+            "2025-04-16 00:00:00",
+            "2025-04-16 23:59:59"
+        )
+
+        assertEquals(2, result.size)
+
+        // Проверка первой тренировки
+        assertEquals("Утренняя пробежка", result[0].trainingName)
+        assertEquals(listOf(10, 15, 20), result[0].intensityZones)
+        assertEquals(86400, result[0].recoveryTime)
+
+        // Проверка второй тренировки
+        assertEquals("Вечерняя тренировка", result[1].trainingName)
+        assertEquals(listOf(5, 10, 15), result[1].intensityZones)
+        assertEquals(43200, result[1].recoveryTime)
     }
 }

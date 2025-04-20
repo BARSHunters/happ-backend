@@ -7,6 +7,7 @@ import io.mockk.verify
 import model.Gender
 import model.UserData
 import model.WeightDesire
+import model.response.UserDataResponse
 import repository.UserRepository
 import java.time.LocalDate
 import kotlin.test.*
@@ -15,6 +16,17 @@ class UserDataServiceTest {
 
     private val userRepository = mockk<UserRepository>()
     private val service = UserDataService(userRepository)
+
+    private val testUDResponse = UserDataResponse(
+        username = "testuser",
+        name = "Test User",
+        birthDate = LocalDate.of(1990, 1, 1),
+        age = 35,
+        gender = Gender.MALE,
+        height = 180,
+        weight = 75.0f,
+        weightDesire = WeightDesire.REMAIN,
+    )
 
     private val testUser = UserData(
         username = "testuser",
@@ -88,7 +100,7 @@ class UserDataServiceTest {
 
         val result = service.getUserData("testuser")
 
-        assertEquals(testUser, result)
+        assertEquals(testUDResponse, result)
         verify { userRepository.findByUsername("testuser") }
     }
 

@@ -37,7 +37,6 @@ class ActivityServiceTest {
                 "duration": "01:30:00",
                 "datetime": "2025-04-16 08:00:00",
                 "name": "Утренняя пробежка",
-                "intensityZones": [10, 15, 20, 10, 5],
                 "heartRates": [
                     {"timestamp": 1700000000, "heartRate": 120},
                     {"timestamp": 1700000100, "heartRate": 130}
@@ -60,7 +59,6 @@ class ActivityServiceTest {
                 "duration": "01:30:00",
                 "datetime": "2025-04-16 08:00:00",
                 "name": "Интервальная тренировка",
-                "intensityZones": [5, 10, 15, 20, 10],
                 "heartRates": [
                     {"timestamp": 1700000000, "heartRate": 120}
                 ]
@@ -73,7 +71,6 @@ class ActivityServiceTest {
         assertEquals(5400, testData.trainingDuration)
         assertEquals("2025-04-16 08:00:00", testData.trainingDate)
         assertEquals("Интервальная тренировка", testData.trainingName)
-        assertEquals(listOf(5, 10, 15, 20, 10), testData.intensityZones)
         assertEquals(listOf(1700000000L to 120), testData.heartRateList)
     }
 
@@ -136,7 +133,6 @@ class ActivityServiceTest {
             "duration": "01:00:00",
             "datetime": "$trainingDate",
             "name": "Тестовая тренировка",
-            "intensityZones": [5, 10, 15],
             "heartRates": [
                 {"timestamp": 1700000000, "heartRate": 120}
             ]
@@ -180,7 +176,6 @@ class ActivityServiceTest {
         assertEquals(username, result[0].username)
         assertEquals(3600, result[0].trainingDuration)
         assertEquals("Тестовая тренировка", result[0].trainingName)
-        assertEquals(listOf(5, 10, 15), result[0].intensityZones)
         assertEquals(86400, result[0].recoveryTime)
     }
 
@@ -275,7 +270,6 @@ class ActivityServiceTest {
             "duration": "00:30:00",
             "datetime": "2025-04-16 10:00:00",
             "name": "Тест с одним пульсом",
-            "intensityZones": [0, 0, 0, 0, 0],
             "heartRates": [
                 {"timestamp": 1700000000, "heartRate": 120}
             ]
@@ -312,5 +306,96 @@ class ActivityServiceTest {
         assertEquals(1800, trainingData.trainingDuration) // 30 минут = 1800 секунд
         assertEquals(17457.117, trainingData.caloriesBurned, 0.001)
         assertEquals(4.615, trainingData.met, 0.001)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesWithMultipleIntervals() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                // Интервалы с средними значениями, точно попадающими в зоны:
+                1700000000L to 100,  // Интервал 1: 100 → 115 → среднее 107.5 (зона 1: 93..112)
+                1700000060L to 115,   // Интервал 2: 115 → 130 → среднее 122.5 (зона 2: 112..130)
+                1700000120L to 130,  // Интервал 3: 130 → 145 → среднее 137.5 (зона 3: 130..149)
+                1700000180L to 145,  // Интервал 4: 145 → 160 → среднее 152.5 (зона 4: 149..168)
+                1700000240L to 160,  // Интервал 5: 160 → 180 → среднее 170.0 (зона 5: 168..187)
+                1700000300L to 180
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Каждый интервал длится 60 секунд → 1 минута на зону.
+        assertEquals(listOf(1, 1, 1, 1, 1), testData.intensityZones)
+    }
+    @Test
+    fun testCalculateIntensityZonesBoundaryValues() {
+        val hrMax = 208 - (0.7 * 30).toInt() // 187
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                1700000000L to (0.5 * hrMax).toInt(),   // Нижняя граница зоны 1 (93)
+                1700000060L to (0.6 * hrMax).toInt(),   // Нижняя граница зоны 2 (112)
+                1700000120L to (0.7 * hrMax).toInt(),   // Нижняя граница зоны 3 (130)
+                1700000180L to (0.8 * hrMax).toInt(),   // Нижняя граница зоны 4 (149)
+                1700000240L to (0.9 * hrMax).toInt(),   // Нижняя граница зоны 5 (168)
+                1700000300L to hrMax                    // Верхняя граница зоны 5 (187)
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Ожидаемый результат:
+        // - Интервал 93 → 112: среднее 102.5 → зона 1 (60 сек → 1 мин)
+        // - Интервал 112 → 130: среднее 121 → зона 2 (60 сек → 1 мин)
+        // - Интервал 130 → 149: среднее 139.5 → зона 3 (60 сек → 1 мин)
+        // - Интервал 149 → 168: среднее 158.5 → зона 4 (60 сек → 1 мин)
+        // - Интервал 168 → 187: среднее 177.5 → зона 5 (60 сек → 1 мин)
+        assertEquals(listOf(1, 1, 1, 1, 1), testData.intensityZones)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesWithSingleHeartRate() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(1700000000L to 120)
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Нет интервалов - все зоны должны быть 0
+        assertEquals(listOf(0, 0, 0, 0, 0), testData.intensityZones)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesWithNegativeDuration() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                1700000100L to 120,  // Более поздний timestamp идет первым
+                1700000000L to 100
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Отрицательная длительность должна игнорироваться
+        assertEquals(listOf(0, 0, 0, 0, 0), testData.intensityZones)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesRounding() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                1700000000L to 100,
+                1700000030L to 120  // Интервал 30 секунд
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // 30 секунд = 0.5 минут -> должно округлиться до 0
+        assertEquals(listOf(0, 0, 0, 0, 0), testData.intensityZones)
     }
 }

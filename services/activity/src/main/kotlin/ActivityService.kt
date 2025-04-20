@@ -64,7 +64,6 @@ data class WorkoutData(
     val duration: String,
     val datetime: String,
     val name: String,
-    val intensityZones: List<Int>,
     val heartRates: List<HeartRateEntry>
 )
 
@@ -330,6 +329,7 @@ class ActivityService(
             calculateHeartRateMetrics(thisRequestTrainingData)
             fetchUserData(thisRequestTrainingData)
             calculateCalories(thisRequestTrainingData)
+            calculateIntensityZones(thisRequestTrainingData)
             calculateMET(thisRequestTrainingData)
             calculateRecoveryTime(thisRequestTrainingData)
             sendTrainingDataToAchievementAndNotifyService(thisRequestTrainingData)
@@ -394,7 +394,6 @@ class ActivityService(
                 trainingDuration = parts[0] * 3600 + parts[1] * 60 + parts[2]
                 trainingName = workout.name
                 trainingDate = workout.datetime
-                intensityZones = workout.intensityZones
                 heartRateList = workout.heartRates.map { it.timestamp to it.heartRate }
             }
         } catch (e: SerializationException) {
@@ -485,6 +484,36 @@ class ActivityService(
             } else {
                 ((-20.4022 + (0.4472 * thisRequestTrainingData.avgHeartRate) - (0.1263 * thisRequestTrainingData.weight) + (0.074 * thisRequestTrainingData.age)) / 4.184) * thisRequestTrainingData.trainingDuration
             }
+    }
+
+    internal fun calculateIntensityZones(thisRequestTrainingData: ExtendedTrainingData) {
+        val hrMax = 208 - (0.7 * thisRequestTrainingData.age).toInt()
+        val zones = listOf(
+            (0.5 * hrMax).toInt()..(0.6 * hrMax).toInt(),   // Зона 1
+            (0.6 * hrMax).toInt()..(0.7 * hrMax).toInt(),   // Зона 2
+            (0.7 * hrMax).toInt()..(0.8 * hrMax).toInt(),   // Зона 3
+            (0.8 * hrMax).toInt()..(0.9 * hrMax).toInt(),   // Зона 4
+            (0.9 * hrMax).toInt()..hrMax                    // Зона 5
+        )
+
+        val timeInZones = MutableList(5) { 0 }
+
+        for (i in 1 until thisRequestTrainingData.heartRateList.size) {
+            val prev = thisRequestTrainingData.heartRateList[i - 1]
+            val curr = thisRequestTrainingData.heartRateList[i]
+            val durationSeconds = (curr.first - prev.first).toInt()
+
+            // Пропускаем интервалы с некорректной длительностью
+            if (durationSeconds <= 0) continue
+
+            val avgHeartRate = (prev.second + curr.second) / 2.0
+            val zoneIndex = zones.indexOfFirst { avgHeartRate.toInt() in it }
+            if (zoneIndex != -1) {
+                timeInZones[zoneIndex] += durationSeconds
+            }
+        }
+
+        thisRequestTrainingData.intensityZones = timeInZones.map { it / 60 }
     }
 
     /**

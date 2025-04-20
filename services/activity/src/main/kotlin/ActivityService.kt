@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 @Serializable
 data class RequestWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T,
 )
 
@@ -37,7 +37,7 @@ data class RequestWrapper<T>(
 @Serializable
 data class ResponseWrapper<T>(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val dto: T,
 )
 
@@ -47,7 +47,7 @@ data class ResponseWrapper<T>(
 @Serializable
 data class GetterDto(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val username: String,
 )
 
@@ -141,7 +141,7 @@ data class ExtendedTrainingData(
 @Serializable
 data class RationRequestDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val login: String,
 )
 
@@ -151,7 +151,7 @@ data class RationRequestDTO(
 @Serializable
 data class ActivityResponseDTO(
     @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val uuid: UUID,
     val activityIndex: Float,
 )
 
@@ -173,7 +173,7 @@ data class APIGatewayToActivityRequest(
 class ActivityService(
     internal var url: String = "jdbc:postgresql://localhost:5432/trainingdb",
     internal var user: String = "postgres",
-    internal var password: String = "password",
+    internal var password: String = "postgres",
 ) {
     internal val requestTrainingDataList = ConcurrentLinkedQueue<ExtendedTrainingData>()
 
@@ -197,7 +197,7 @@ class ActivityService(
             }
         sendEvent(
             "activity:response:CaloriesBurned",
-            Json.encodeToString(ResponseWrapper(requestWrapper.id, ActivityResponse(username, records))),
+            Json.encodeToString(ResponseWrapper(requestWrapper.uuid, ActivityResponse(username, records))),
         )
     }
 
@@ -209,9 +209,9 @@ class ActivityService(
      */
     internal fun handleUserDataResponse(message: String) {
         val responseWrapper = Json.decodeFromString<ResponseWrapper<UserDataResponse>>(message)
-        val matchingRequestTrainingData = requestTrainingDataList.find { it.userDataUUID == responseWrapper.id }
+        val matchingRequestTrainingData = requestTrainingDataList.find { it.userDataUUID == responseWrapper.uuid }
         if (matchingRequestTrainingData == null) {
-            println("No matching training request found for UUID: ${responseWrapper.id}")
+            println("No matching training request found for UUID: ${responseWrapper.uuid}")
             return
         }
         val response = responseWrapper.dto
@@ -220,7 +220,7 @@ class ActivityService(
             age = response.age
             gender = response.gender
         }
-        println("Received user data for request ${responseWrapper.id}: $response")
+        println("Received user data for request ${responseWrapper.uuid}: $response")
         matchingRequestTrainingData.userDataReceived.complete(Unit)
     }
 

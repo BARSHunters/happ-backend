@@ -267,4 +267,50 @@ class ActivityServiceTest {
         assertEquals(listOf(5, 10, 15), result[1].intensityZones)
         assertEquals(43200, result[1].recoveryTime)
     }
+
+    @Test
+    fun testSingleHeartRateValue() = runTest {
+        val jsonWorkout = """
+        {
+            "duration": "00:30:00",
+            "datetime": "2025-04-16 10:00:00",
+            "name": "Тест с одним пульсом",
+            "intensityZones": [0, 0, 0, 0, 0],
+            "heartRates": [
+                {"timestamp": 1700000000, "heartRate": 120}
+            ]
+        }
+    """.trimIndent()
+
+        // Мокаем сохранение и получение данных
+        every { activityService.saveToDatabase(any()) } just Runs
+        every {
+            activityService.fetchFromDatabase(eq("singleUser"), any(), any())
+        } returns listOf(
+            TrainingData(
+                username = "singleUser",
+                trainingName = "Тест с одним пульсом",
+                trainingDate = "2025-04-16 10:00:00",
+                trainingDuration = 1800,
+                avgHeartRate = 120.0,
+                maxHeartRate = 120,
+                caloriesBurned = 17457.117, // Примерное значение для проверки
+                met = 4.615,
+                intensityZones = listOf(0, 0, 0, 0, 0),
+                recoveryTime = 12345
+            )
+        )
+
+        val result = activityService.processRequestAddTraining("singleUser", jsonWorkout)
+        assertEquals("Workout processed and saved.", result)
+
+        val trainingData = activityService.processRequestGetSomeTraining("singleUser").first()
+
+        // Проверка метрик
+        assertEquals(120, trainingData.maxHeartRate)
+        assertEquals(120.0, trainingData.avgHeartRate, 0.01)
+        assertEquals(1800, trainingData.trainingDuration) // 30 минут = 1800 секунд
+        assertEquals(17457.117, trainingData.caloriesBurned, 0.001)
+        assertEquals(4.615, trainingData.met, 0.001)
+    }
 }

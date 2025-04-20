@@ -410,6 +410,17 @@ class ActivityService(
      * Рассчитывает средний и максимальный пульс на основе данных о тренировке.
      */
     internal fun calculateHeartRateMetrics(thisRequestTrainingData: ExtendedTrainingData) {
+
+        // Обработка пустого списка
+        if (thisRequestTrainingData.heartRateList.isEmpty()) {
+            thisRequestTrainingData.maxHeartRate = 0
+            thisRequestTrainingData.avgHeartRate = 0.0
+            return
+        // Обработка списка из одного элемента
+        } else if (thisRequestTrainingData.heartRateList.size == 1) {
+            thisRequestTrainingData.avgHeartRate = thisRequestTrainingData.heartRateList[0].second.toDouble()
+        }
+
         thisRequestTrainingData.maxHeartRate = thisRequestTrainingData.heartRateList.maxOf { it.second }
 
         var weightedSum = 0.0

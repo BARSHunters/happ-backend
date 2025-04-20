@@ -119,7 +119,7 @@ class ActivityServiceTest {
         activityService.processRequestAddTraining(userId, jsonWorkout, trainingDate)
 
         val result = activityService.processRequestGetSomeTraining(userId, trainingDate)
-        assertEquals(userId, result.userId)
+        assertEquals(userId, result.username)
         assertEquals(3600, result.trainingDuration)
     }
 

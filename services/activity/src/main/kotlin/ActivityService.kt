@@ -97,7 +97,7 @@ data class UserDataResponse(
 
 @Serializable
 data class TrainingData(
-    val userId: String,
+    val username: String,
     val trainingDate: String,
     val trainingDuration: Int,
     val avgHeartRate: Double,
@@ -109,7 +109,7 @@ data class TrainingData(
 
 // Специальный тип данных, объект которого создаётся при каждом новом запросе на добавление тренировки
 data class ExtendedTrainingData(
-    internal var userId: String = "",
+    internal var username: String = "",
     var trainingDate: String = "",
     var trainingDuration: Int = 0,
     var heartRateList: List<Pair<Long, Int>> = emptyList(),
@@ -121,7 +121,7 @@ data class ExtendedTrainingData(
     var caloriesBurned: Double = 0.0,
     var met: Double = 0.0,
     var recoveryTime: Int = 0,
-    var userDataReceived: CompletableDeferred<Unit> = CompletableDeferred<Unit>(),
+    var userDataReceived: CompletableDeferred<Unit> = CompletableDeferred(),
     var userDataUUID: UUID = UUID.randomUUID(),
 )
 
@@ -147,13 +147,13 @@ data class ActivityResponseDTO(
 
 /**
  * Запрос от API Gateway
- * @param userId Идентификатор пользователя.
+ * @param username Идентификатор пользователя.
  * @param jsonWorkout JSON-строка с данными о тренировке (опционально).
  * @param trainingDate Дата тренировки (опционально).
  */
 @Serializable
 data class APIGatewayToActivityRequest(
-    val userId: String,
+    val username: String,
     val jsonWorkout: String? = null,
     val trainingDate: String? = null,
 )
@@ -164,34 +164,20 @@ class ActivityService(
     internal var password: String = "password",
 ) {
     internal val requestTrainingDataList = ConcurrentLinkedQueue<ExtendedTrainingData>()
-    /*internal var userId: String = ""
-    internal var trainingDate: String = ""
-    internal var trainingDuration: Int = 0
-    internal var heartRateList: List<Pair<Long, Int>> = emptyList()
-    internal var avgHeartRate: Double = 0.0
-    internal var maxHeartRate: Int = 0
-    internal var weight: Float = 0.0F
-    internal var age: Int = 0
-    internal var gender: Gender = Gender.MALE
-    internal var caloriesBurned: Double = 0.0
-    internal var met: Double = 0.0
-    internal var recoveryTime: Int = 0
-    internal var userDataReceived = CompletableDeferred<Unit>()
-    internal var userDataUUID = UUID.randomUUID()*/
 
     /**
      * Обработчик запроса от WeightHistoryService. Затем отправляет ответ
      * Слушает по каналу "activity:request:caloriesBurned"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - username:String (id пользователя)
      * Отправляет по каналу "activity:response:CaloriesBurned"
-     * Отправляемые данные: закодированное Json.encodeToString - DTO вида ActivityResponse(userId:String, activities:List<ActivityRecord>),
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида ActivityResponse(username:String, activities:List<ActivityRecord>),
      * где: ActivityRecord - это DTO вида ActivityRecord(date:String, calories:Double) (т.е. в сумме это id и список пар дата-сожжённые калории)
      */
     internal fun handleActivityRequest(message: String) {
         val requestWrapper = Json.decodeFromString<RequestWrapper<String>>(message)
-        val userId = requestWrapper.dto
+        val username = requestWrapper.dto
         val records =
-            fetchFromDatabase(userId).map {
+            fetchFromDatabase(username).map {
                 ActivityRecord(
                     date = it.trainingDate,
                     calories = it.caloriesBurned,
@@ -199,14 +185,14 @@ class ActivityService(
             }
         sendEvent(
             "activity:response:CaloriesBurned",
-            Json.encodeToString(ResponseWrapper(requestWrapper.id, ActivityResponse(userId, records))),
+            Json.encodeToString(ResponseWrapper(requestWrapper.id, ActivityResponse(username, records))),
         )
     }
 
     /**
      * Обработчик ответа от UserDataService.
      * Слушает по каналу "user_data:response:UserData"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида UserDataResponse(userId:String, weight:Double, age:Int, gender:String),
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида UserDataResponse(username:String, weight:Double, age:Int, gender:String),
      * где: gender = {"male","female"} (т.е. в сумме - id, вес, возраст и пол пользователя)
      */
     internal fun handleUserDataResponse(message: String) {
@@ -229,7 +215,7 @@ class ActivityService(
     /**
      * Обработчик запроса от API Gateway на добавление тренировки. Затем отправляет ответ.
      * Слушает по каналу "activity:request:AddTraining"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToActivityRequest(userId:String, jsonWorkout:String? = null, trainingDate:String? = null)
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToActivityRequest(username:String, jsonWorkout:String? = null, trainingDate:String? = null)
      * Отправляет по каналу "activity:response:AddTraining"
      * Отправляемые данные: закодированное Json.encodeToString - String (сообщение о результате работы)
      */
@@ -237,7 +223,7 @@ class ActivityService(
         CoroutineScope(Dispatchers.IO).launch {
             val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
             val request = requestWrapper.dto
-            val result = processRequestAddTraining(request.userId, request.jsonWorkout, request.trainingDate)
+            val result = processRequestAddTraining(request.username, request.jsonWorkout, request.trainingDate)
             println("Result of request from API Gateway: $result")
             sendEvent("activity:response:AddTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
@@ -246,16 +232,16 @@ class ActivityService(
     /**
      * Обработчик запроса от API Gateway на получение некоторой тренировки пользователя по дате. Затем отправляет ответ.
      * Слушает по каналу "activity:request:GetSomeTraining"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToActivityRequest(userId:String, jsonWorkout:String? = null, trainingDate:String? = null)
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToActivityRequest(username:String, jsonWorkout:String? = null, trainingDate:String? = null)
      * Отправляет по каналу "activity:response:GetSomeTraining"
-     * Отправляемые данные: закодированное Json.encodeToString - DTO вида TrainingData(userId: String, trainingDate: String, trainingDuration: Int, avgHeartRate: Double,
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида TrainingData(username: String, trainingDate: String, trainingDuration: Int, avgHeartRate: Double,
      * maxHeartRate: Int, caloriesBurned: Double, met: Double, recoveryTime: Int) (т.е суммарно все сохраняемые в БД данные о тренировке)
      */
     internal fun handleGetSomeTrainingRequest(message: String) {
         CoroutineScope(Dispatchers.IO).launch {
             val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
             val request = requestWrapper.dto
-            val result = processRequestGetSomeTraining(userId = request.userId, trainingDate = request.trainingDate)
+            val result = processRequestGetSomeTraining(username = request.username, trainingDate = request.trainingDate)
             println("Result of request from API Gateway: $result")
             sendEvent("activity:response:GetSomeTraining", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
@@ -264,7 +250,7 @@ class ActivityService(
     /**
      * Обработчик запроса от API Gateway на получение списка всех тренировок пользователя. Затем отправляет ответ.
      * Слушает по каналу "activity:request:GetAllTrainings"
-     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToActivityRequest(userId:String, jsonWorkout:String? = null, trainingDate:String? = null)
+     * @param message Ожидаемые данные: закодированное Json.encodeToString - DTO вида APIGatewayToActivityRequest(username:String, jsonWorkout:String? = null, trainingDate:String? = null)
      * Отправляет по каналу "activity:response:GetAllTrainings"
      * Отправляемые данные: закодированное Json.encodeToString - DTO вида List<TrainingData> (т.е список всех данных о тренировках пользователя)
      */
@@ -272,7 +258,7 @@ class ActivityService(
         CoroutineScope(Dispatchers.IO).launch {
             val requestWrapper = Json.decodeFromString<UUIDWrapper<APIGatewayToActivityRequest>>(message)
             val request = requestWrapper.dto
-            val result = processRequestGetAllTraining(request.userId)
+            val result = processRequestGetAllTraining(request.username)
             println("Result of request from API Gateway: $result")
             sendEvent("activity:response:GetAllTrainings", Json.encodeToString(UUIDWrapper(UUID.randomUUID(), result)))
         }
@@ -313,20 +299,20 @@ class ActivityService(
 
     /**
      * Обрабатывает запрос на добавление новой тренировки.
-     * @param userId Идентификатор пользователя.
+     * @param username Идентификатор пользователя.
      * @param jsonWorkout JSON-строка с данными о тренировке (опционально).
      * @param trainingDate Дата тренировки (опционально).
      * @return Результат обработки запроса.
      */
     internal suspend fun processRequestAddTraining(
-        userId: String,
+        username: String,
         jsonWorkout: String? = null,
         trainingDate: String? = null,
     ): String {
         if (jsonWorkout != null) {
-            var thisRequestTrainingData = ExtendedTrainingData()
+            val thisRequestTrainingData = ExtendedTrainingData()
             this.requestTrainingDataList.add(thisRequestTrainingData)
-            thisRequestTrainingData.userId = userId
+            thisRequestTrainingData.username = username
             if (trainingDate != null) {
                 thisRequestTrainingData.trainingDate = trainingDate
             } else {
@@ -349,24 +335,24 @@ class ActivityService(
 
     /**
      * Обрабатывает запрос на получение некоторой тренировки пользователя по дате.
-     * @param userId Идентификатор пользователя.
+     * @param username Идентификатор пользователя.
      * @param trainingDate Дата тренировки (опционально).
      * @return Результат обработки запроса.
      */
     internal fun processRequestGetSomeTraining(
-        userId: String,
+        username: String,
         trainingDate: String? = null,
     ): TrainingData {
-        return fetchFromDatabase(userId, trainingDate)[0]
+        return fetchFromDatabase(username, trainingDate)[0]
     }
 
     /**
      * Обрабатывает запрос на получение списка всех тренировок пользователя.
-     * @param userId Идентификатор пользователя.
+     * @param username Идентификатор пользователя.
      * @return Результат обработки запроса.
      */
-    internal fun processRequestGetAllTraining(userId: String): List<TrainingData> {
-        return fetchFromDatabase(userId)
+    internal fun processRequestGetAllTraining(username: String): List<TrainingData> {
+        return fetchFromDatabase(username)
     }
 
     /**
@@ -434,13 +420,13 @@ class ActivityService(
      * Запрашивает данные о пользователе.
      * Отправляет запрос сервису UserDataService
      * Отправляет по каналу "user_data:request:UserData"
-     * Отправляемые данные: закодированное Json.encodeToString - userId:String (id пользователя)
+     * Отправляемые данные: закодированное Json.encodeToString - username:String (id пользователя)
      */
     internal suspend fun fetchUserData(thisRequestTrainingData: ExtendedTrainingData) {
         try {
             thisRequestTrainingData.userDataReceived = CompletableDeferred()
             thisRequestTrainingData.userDataUUID = UUID.randomUUID()
-            sendEvent("user_data:request:UserData", Json.encodeToString(GetterDto(thisRequestTrainingData.userDataUUID, thisRequestTrainingData.userId)))
+            sendEvent("user_data:request:UserData", Json.encodeToString(GetterDto(thisRequestTrainingData.userDataUUID, thisRequestTrainingData.username)))
             thisRequestTrainingData.userDataReceived.await()
         } catch (e: Exception) {
             println("Failed to send event: ${e.message}")
@@ -501,14 +487,14 @@ class ActivityService(
      * Отправляет данные о тренировке.
      * Отправляет запрос в сервисы AchievementService и NotifyService
      * Отправляет по каналам "request_training_data" и "notify:request:TrainingData"
-     * Отправляемые данные: закодированное Json.encodeToString - DTO вида TrainingData(userId: String, trainingDate: String, trainingDuration: Int, avgHeartRate: Double,
+     * Отправляемые данные: закодированное Json.encodeToString - DTO вида TrainingData(username: String, trainingDate: String, trainingDuration: Int, avgHeartRate: Double,
      * maxHeartRate: Int, caloriesBurned: Double, met: Double, recoveryTime: Int) (т.е суммарно все сохраняемые в БД данные о тренировке)
      */
     internal fun sendTrainingDataToAchievementAndNotifyService(thisRequestTrainingData: ExtendedTrainingData) {
         try {
             val trainingData =
                 TrainingData(
-                    userId = thisRequestTrainingData.userId,
+                    username = thisRequestTrainingData.username,
                     trainingDate = thisRequestTrainingData.trainingDate,
                     trainingDuration = thisRequestTrainingData.trainingDuration,
                     avgHeartRate = thisRequestTrainingData.avgHeartRate,
@@ -556,7 +542,7 @@ class ActivityService(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
                 )
-            insertStatement.setString(1, thisRequestTrainingData.userId)
+            insertStatement.setString(1, thisRequestTrainingData.username)
             insertStatement.setTimestamp(2, Timestamp.valueOf(thisRequestTrainingData.trainingDate))
             insertStatement.setInt(3, thisRequestTrainingData.trainingDuration)
             insertStatement.setDouble(4, thisRequestTrainingData.avgHeartRate)
@@ -576,12 +562,12 @@ class ActivityService(
 
     /**
      * Получает данные о тренировках пользователя из базы данных.
-     * @param userId Идентификатор пользователя.
+     * @param username Идентификатор пользователя.
      * @param trainingDate Дата тренировки (опционально).
      * @return Список данных о тренировках.
      */
     internal fun fetchFromDatabase(
-        userId: String,
+        username: String,
         trainingDate: String? = null,
     ): List<TrainingData> {
         return try {
@@ -595,7 +581,7 @@ class ActivityService(
                 }
 
             val statement = connection.prepareStatement(query)
-            statement.setString(1, userId)
+            statement.setString(1, username)
 
             if (trainingDate != null) {
                 statement.setTimestamp(2, Timestamp.valueOf(trainingDate))
@@ -607,7 +593,7 @@ class ActivityService(
             while (resultSet.next()) {
                 val record =
                     TrainingData(
-                        userId = resultSet.getString("user_id"),
+                        username = resultSet.getString("user_id"),
                         trainingDate = resultSet.getTimestamp("training_date").toString(),
                         trainingDuration = resultSet.getInt("training_duration"),
                         avgHeartRate = resultSet.getDouble("avg_heart_rate"),

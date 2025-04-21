@@ -205,6 +205,20 @@ fun Application.configureRouting() {
                 call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
+            get("/getActivitiesByWeek") {
+                val user = getLogin()
+                val from = call.queryParameters["startDate"]!!
+                val to = call.queryParameters["endDate"]!!
+                val activity = APIGatewayToActivityRequest(user, startTrainingDate = from, endTrainingDate = to)
+                val request = UUIDWrapper(UUID.randomUUID(), activity)
+                val result = getResultFromMicroservice(
+                    "activity:response:GetSomeTraining", resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("activity:request:GetSomeTraining", Json.encodeToString(request))
+                }
+                call.respond(crutchRemoveUUIDFromResponse(result))
+            }
+
             post("/newActivity") {
                 val user = getLogin()
                 val data = Json.decodeFromString<ActivityDTO>(call.receiveText())

@@ -82,4 +82,46 @@ class UserRepository {
             false
         }
     }
+
+    fun searchListName(username: String): List<UserData> {
+        return try {
+            Database.getConnection().use { connection ->
+                val statement = connection.prepareStatement(
+                    """
+                    SELECT DISTINCT username, name, birth_date, gender, height_cm, weight_kg, weight_desire
+                    FROM users_data
+                    WHERE LOWER(username) LIKE ? 
+                       OR LOWER(name) LIKE ? 
+                       OR LOWER(name) LIKE ?
+                    LIMIT 50;
+                """.trimIndent()
+                )
+                val searchPattern = "$username%"
+                val nameAfterSpacePattern = "% $username%"
+                statement.setString(1, searchPattern)
+                statement.setString(2, searchPattern)
+                statement.setString(3, nameAfterSpacePattern)
+
+                val rs = statement.executeQuery()
+                val users = mutableListOf<UserData>()
+                while (rs.next()) {
+                    users.add(
+                        UserData(
+                            username = rs.getString("username"),
+                            name = rs.getString("name"),
+                            birthDate = rs.getDate("birth_date").toLocalDate(),
+                            gender = Gender.valueOf(rs.getString("gender")),
+                            heightCm = rs.getInt("height_cm"),
+                            weightKg = rs.getFloat("weight_kg"),
+                            weightDesire = WeightDesire.valueOf(rs.getString("weight_desire"))
+                        )
+                    )
+                }
+                users
+            }
+        } catch (e: Exception) {
+            println("DB Error: ${e.message}")
+            emptyList()
+        }
+    }
 }

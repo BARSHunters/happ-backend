@@ -1,24 +1,24 @@
 package com.example.data
 
 import kotlinx.serialization.Serializable
+import serializers.LocalDateTimeSerializer
+import java.time.LocalDateTime
 
-/**
- * Запрос от API Gateway
- * @param userId Идентификатор пользователя.
- * @param jsonWorkout JSON-строка с данными о тренировке (опционально).
- * @param trainingDate Дата тренировки (опционально).
- */
 @Serializable
 data class APIGatewayToActivityRequest(
-    val userId: String,
+    val username: String,
     val jsonWorkout: String? = null,
-    val trainingDate: String? = null,
+    val startTrainingDate: String? = null,
+    val endTrainingDate: String? = null,
 )
 
 @Serializable
 data class ActivityDTO(
     val duration: String, // format hh:mm:ss
-    val heartRates: List<HeartRate>
+    val name: String,
+    @Serializable(with = LocalDateTimeSerializer::class)
+    val datetime: LocalDateTime,
+    val heartRates: List<HeartRate>,
 )
 
 @Serializable

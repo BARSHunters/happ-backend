@@ -283,7 +283,6 @@ class WeightHistoryService(
             this.age = response.age
             this.username = response.username
             validateWeight(response.weight)
-            saveWeightToDB(username, LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), response.weight)
             this.gender = response.gender
             this.height = response.height
             println("User data received: $response")
@@ -577,7 +576,7 @@ class WeightHistoryService(
         try {
             nutritionDataReceived = CompletableDeferred()
             nutritionUUID = UUID.randomUUID()
-            sendEvent("nutrition:request:CPFC", Json.encodeToString(HistoryRequestDTO(nutritionUUID, username)))
+            sendEvent("nutrition:request:CPFC", Json.encodeToString(HistoryRequestDTO(nutritionUUID, username,30)))
             println("Nutrition data requested for user: $username")
             nutritionDataReceived.await()
         } catch (e: Exception) {

@@ -63,6 +63,16 @@ fun Application.configureRouting() {
                 call.respond(crutchRemoveUUIDFromResponse(result))
             }
 
+            get("/searchByName/{name}") {
+                val getterDto = GetterDto(UUID.randomUUID(), call.parameters["name"]!!)
+                val result = getResultFromMicroservice(
+                    "user_data:response:SearchByName", "error", resultCondition = uuidEquals(getterDto.uuid)
+                ) {
+                    sendEvent("user_data:request:SearchByName", Json.encodeToString(getterDto))
+                }
+                call.respond(crutchRemoveUUIDFromResponse(result))
+            }
+
             get("/getUserInfo") {
                 val dto = UserDataRequest(UUID.randomUUID(), getLogin())
                 println(dto)
@@ -177,6 +187,34 @@ fun Application.configureRouting() {
                     "activity:response:GetAllTrainings", resultCondition = uuidEquals(request.uuid)
                 ) {
                     sendEvent("activity:request:GetAllTrainings", Json.encodeToString(request))
+                }
+                call.respond(crutchRemoveUUIDFromResponse(result))
+            }
+
+            get("/getActivities/{fromDate}/{toDate}") {
+                val user = getLogin()
+                val from = call.parameters["fromDate"]!!
+                val to = call.parameters["toDate"]!!
+                val activity = APIGatewayToActivityRequest(user, startTrainingDate = from, endTrainingDate = to)
+                val request = UUIDWrapper(UUID.randomUUID(), activity)
+                val result = getResultFromMicroservice(
+                    "activity:response:GetSomeTraining", resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("activity:request:GetSomeTraining", Json.encodeToString(request))
+                }
+                call.respond(crutchRemoveUUIDFromResponse(result))
+            }
+
+            get("/getActivitiesByWeek") {
+                val user = getLogin()
+                val from = call.queryParameters["startDate"]!!
+                val to = call.queryParameters["endDate"]!!
+                val activity = APIGatewayToActivityRequest(user, startTrainingDate = from, endTrainingDate = to)
+                val request = UUIDWrapper(UUID.randomUUID(), activity)
+                val result = getResultFromMicroservice(
+                    "activity:response:GetSomeTraining", resultCondition = uuidEquals(request.uuid)
+                ) {
+                    sendEvent("activity:request:GetSomeTraining", Json.encodeToString(request))
                 }
                 call.respond(crutchRemoveUUIDFromResponse(result))
             }

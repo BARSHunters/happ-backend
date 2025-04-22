@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 import model.Gender
 import model.UserData
 import model.WeightDesire
+import model.response.UserDataResponse
 import service.UserDataService
 import java.time.LocalDate
 import kotlin.test.BeforeTest
@@ -16,6 +17,17 @@ class UserDataControllerTest {
 
     private val userDataService = mockk<UserDataService>()
     private val controller = UserDataController(userDataService)
+
+    private val testUDResponse = UserDataResponse(
+        username = "testuser",
+        name = "Test User",
+        birthDate = LocalDate.of(1990, 1, 1),
+        age = 35,
+        gender = Gender.MALE,
+        height = 180,
+        weight = 75.0f,
+        weightDesire = WeightDesire.REMAIN,
+    )
 
     private val testUser = UserData(
         username = "testuser",
@@ -75,7 +87,7 @@ class UserDataControllerTest {
 
     @Test
     fun `receiveUserData should send sendUserData event when user exists`() {
-        every { userDataService.getUserData("testuser") } returns testUser
+        every { userDataService.getUserData("testuser") } returns testUDResponse
         every { sendEvent(any(), any()) } just Runs
         controller.receiveUserData("testuser")
         verify {

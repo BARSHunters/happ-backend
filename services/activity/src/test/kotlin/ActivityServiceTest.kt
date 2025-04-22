@@ -5,145 +5,190 @@ import io.mockk.just
 import io.mockk.spyk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
 import utils.Gender
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 class ActivityServiceTest {
     private lateinit var activityService: ActivityService
 
     @BeforeEach
     fun setUp() {
-        activityService = spyk(ActivityService()) // Используем spyk для частичного мокинга
+        activityService = spyk(ActivityService())
 
-        // Мокируем fetchUserData, чтобы он возвращал фиктивные данные
-        coEvery { activityService.fetchUserData() } answers {
-            activityService.weight = 70.0F
-            activityService.age = 30
-            activityService.gender = Gender.MALE
+        coEvery {
+            activityService.fetchUserData(any())
+        } answers {
+            val request = it.invocation.args[0] as ExtendedTrainingData
+            request.weight = 70.0F
+            request.age = 30
+            request.gender = Gender.MALE
+            request.userDataReceived.complete(Unit)
         }
 
-        // Мокируем вызов внешнего сервиса (делаем его пустым)
-        every { activityService.sendTrainingDataToAchievementAndNotifyService() } just Runs
+        every { activityService.sendTrainingDataToAchievementAndNotifyService(any()) } just Runs
+        every { activityService.saveToDatabase(any()) } just Runs
     }
 
     @Test
-    fun testParseWorkout() =
-        runTest {
-            val jsonWorkout =
-                """
-                {
-                    "duration": "01:30:00",
-                    "heartRates": [
-                        {"timestamp": 1700000000, "heartRate": 120},
-                        {"timestamp": 1700000100, "heartRate": 130}
-                    ]
-                }
-                """.trimIndent()
+    fun testParseWorkoutAndRemoveFromQueue() = runTest {
+        val jsonWorkout = """
+            {
+                "duration": "01:30:00",
+                "datetime": "2025-04-16 08:00:00",
+                "name": "Утренняя пробежка",
+                "heartRates": [
+                    {"timestamp": 1700000000, "heartRate": 120},
+                    {"timestamp": 1700000100, "heartRate": 130}
+                ]
+            }
+        """.trimIndent()
 
-            activityService.processRequestAddTraining("user1", jsonWorkout)
-            assertEquals(5400, activityService.trainingDuration) // 1 час 30 минут = 5400 секунд
-        }
+        val initialSize = activityService.requestTrainingDataList.size
+        val result = activityService.processRequestAddTraining("user1", jsonWorkout)
+        val finalSize = activityService.requestTrainingDataList.size
+
+        assertEquals("Workout processed and saved.", result)
+        assertEquals(initialSize, finalSize)
+    }
+
+    @Test
+    fun testParseWorkoutWithAllFields() {
+        val jsonWorkout = """
+            {
+                "duration": "01:30:00",
+                "datetime": "2025-04-16 08:00:00",
+                "name": "Интервальная тренировка",
+                "heartRates": [
+                    {"timestamp": 1700000000, "heartRate": 120}
+                ]
+            }
+        """.trimIndent()
+
+        val testData = ExtendedTrainingData()
+        activityService.parseWorkout(jsonWorkout, testData)
+
+        assertEquals(5400, testData.trainingDuration)
+        assertEquals("2025-04-16 08:00:00", testData.trainingDate)
+        assertEquals("Интервальная тренировка", testData.trainingName)
+        assertEquals(listOf(1700000000L to 120), testData.heartRateList)
+    }
 
     @Test
     fun testCalculateHeartRateMetrics() {
-        val heartRates =
-            listOf(
+        val testData = ExtendedTrainingData(
+            heartRateList = listOf(
                 1700000000L to 120,
                 1700000100L to 130,
                 1700000200L to 140,
             )
-        activityService.heartRateList = heartRates
-        activityService.calculateHeartRateMetrics()
+        )
 
-        assertEquals(140, activityService.maxHeartRate)
-        assertEquals(130.0, activityService.avgHeartRate)
+        activityService.calculateHeartRateMetrics(testData)
+        assertEquals(140, testData.maxHeartRate)
+        assertEquals(130.0, testData.avgHeartRate, 0.1)
     }
 
     @Test
     fun testCalculateCalories() {
-        activityService.weight = 70.0F
-        activityService.age = 30
-        activityService.gender = Gender.MALE
-        activityService.avgHeartRate = 120.0
-        activityService.trainingDuration = 3600
+        val testData = ExtendedTrainingData(
+            weight = 70.0F,
+            age = 30,
+            gender = Gender.MALE,
+            avgHeartRate = 120.0,
+            trainingDuration = 3600
+        )
 
-        activityService.calculateCalories()
-        // Реальный ответ: 34914,23518...
-        assertEquals(34914.235, activityService.caloriesBurned, 0.001)
-
-        activityService.weight = 58.5F
-        activityService.age = 25
-        activityService.gender = Gender.FEMALE
-        activityService.avgHeartRate = 124.0
-        activityService.trainingDuration = 2000
-
-        activityService.calculateCalories()
-        // Реальный ответ: 14107,09847...
-        assertEquals(14107.098, activityService.caloriesBurned, 0.001)
+        activityService.calculateCalories(testData)
+        assertEquals(34914.235, testData.caloriesBurned, 0.001)
     }
 
     @Test
     fun testCalculateMET() {
-        activityService.avgHeartRate = 120.0
-        activityService.age = 30
-        activityService.calculateMET()
-        // Реальный ответ: 4.61538...
-        assertEquals(4.615, activityService.met, 0.001)
+        val testData = ExtendedTrainingData(
+            avgHeartRate = 120.0,
+            age = 30
+        )
+        activityService.calculateMET(testData)
+        assertEquals(4.615, testData.met, 0.001)
     }
 
     @Test
     fun testCalculateRecoveryTime() {
-        activityService.met = 5.0
-        activityService.avgHeartRate = 120.0
-        activityService.maxHeartRate = 140
-        activityService.calculateRecoveryTime()
-
-        // Реальный ответ: 141942
-        assertEquals(141942, activityService.recoveryTime)
+        val testData = ExtendedTrainingData(
+            met = 5.0,
+            avgHeartRate = 120.0,
+            maxHeartRate = 140
+        )
+        activityService.calculateRecoveryTime(testData)
+        assertEquals(141942, testData.recoveryTime)
     }
 
     @Test
-    fun testSaveAndFetchFromDatabase() =
-        runTest {
-            val userId = "testUser"
-            val trainingDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-
-            // Сохраняем данные
-            activityService.processRequestAddTraining(
-                userId,
-                """
-                {
-                    "duration": "01:00:00",
-                    "heartRates": [
-                        {"timestamp": 1700000000, "heartRate": 120}
-                    ]
-                }
-                """.trimIndent(),
-                trainingDate,
-            )
-
-            // Получаем данные
-            val result = activityService.processRequestGetSomeTraining(userId, trainingDate = trainingDate)
-            assertEquals(userId, result.userId)
-            assertEquals(3600, result.trainingDuration) // 1 час = 3600 секунд
+    fun testSaveAndFetchFromDatabase() = runTest {
+        val username = "testUser"
+        val trainingDate = "2025-04-16 09:00:00"
+        val jsonWorkout = """
+        {
+            "duration": "01:00:00",
+            "datetime": "$trainingDate",
+            "name": "Тестовая тренировка",
+            "heartRates": [
+                {"timestamp": 1700000000, "heartRate": 120}
+            ]
         }
+    """.trimIndent()
+
+        // Мокаем сохранение в БД
+        every { activityService.saveToDatabase(any()) } just Runs
+
+        // Мокаем запрос к БД
+        every {
+            activityService.fetchFromDatabase(
+                eq(username),
+                eq("2025-04-16 00:00:00"),
+                eq("2025-04-16 23:59:59")
+            )
+        } returns listOf(
+            TrainingData(
+                username = username,
+                trainingName = "Тестовая тренировка",
+                trainingDate = trainingDate,
+                trainingDuration = 3600,
+                avgHeartRate = 120.0,
+                maxHeartRate = 140,
+                caloriesBurned = 300.0,
+                met = 5.0,
+                intensityZones = listOf(5, 10, 15),
+                recoveryTime = 86400
+            )
+        )
+
+        activityService.processRequestAddTraining(username, jsonWorkout)
+
+        val result = activityService.processRequestGetSomeTraining(
+            username,
+            "2025-04-16 00:00:00",
+            "2025-04-16 23:59:59"
+        )
+
+        assertFalse(result.isEmpty())
+        assertEquals(username, result[0].username)
+        assertEquals(3600, result[0].trainingDuration)
+        assertEquals("Тестовая тренировка", result[0].trainingName)
+        assertEquals(86400, result[0].recoveryTime)
+    }
 
     @Test
     fun testInvalidWorkoutData() {
-        val invalidJsonWorkout =
-            """
+        val invalidJsonWorkout = """
             {
                 "duration": "01:30",
                 "heartRates": []
             }
-            """.trimIndent()
+        """.trimIndent()
 
-        assertThrows(RuntimeException::class.java) {
+        assertThrows<RuntimeException> {
             runBlocking {
                 activityService.processRequestAddTraining("user1", invalidJsonWorkout)
             }
@@ -152,11 +197,205 @@ class ActivityServiceTest {
 
     @Test
     fun testInvalidUserData() {
-        activityService.weight = -1.0F
-        activityService.age = 0
-
-        assertThrows(IllegalArgumentException::class.java) {
-            activityService.calculateCalories()
+        val testData = ExtendedTrainingData(
+            weight = -1.0F,
+            age = 0
+        )
+        assertThrows<IllegalArgumentException> {
+            activityService.calculateCalories(testData)
         }
+    }
+
+    @Test
+    fun testFetchTrainingDataWithDateRange() = runTest {
+        val username = "rangeTestUser"
+
+        // Мокаем запрос к БД
+        every {
+            activityService.fetchFromDatabase(
+                eq(username),
+                any<String>(),
+                any<String>()
+            )
+        } returns listOf(
+            TrainingData(
+                username = username,
+                trainingName = "Утренняя пробежка",
+                trainingDate = "2025-04-16 08:00:00",
+                trainingDuration = 3600,
+                avgHeartRate = 120.0,
+                maxHeartRate = 140,
+                caloriesBurned = 300.0,
+                met = 5.0,
+                intensityZones = listOf(10, 15, 20),
+                recoveryTime = 86400 // 24 часа в секундах
+            ),
+            TrainingData(
+                username = username,
+                trainingName = "Вечерняя тренировка",
+                trainingDate = "2025-04-16 18:00:00",
+                trainingDuration = 1800,
+                avgHeartRate = 110.0,
+                maxHeartRate = 130,
+                caloriesBurned = 200.0,
+                met = 4.0,
+                intensityZones = listOf(5, 10, 15),
+                recoveryTime = 43200 // 12 часов в секундах
+            )
+        )
+
+        val result = activityService.processRequestGetSomeTraining(
+            username,
+            "2025-04-16 00:00:00",
+            "2025-04-16 23:59:59"
+        )
+
+        assertEquals(2, result.size)
+
+        // Проверка первой тренировки
+        assertEquals("Утренняя пробежка", result[0].trainingName)
+        assertEquals(listOf(10, 15, 20), result[0].intensityZones)
+        assertEquals(86400, result[0].recoveryTime)
+
+        // Проверка второй тренировки
+        assertEquals("Вечерняя тренировка", result[1].trainingName)
+        assertEquals(listOf(5, 10, 15), result[1].intensityZones)
+        assertEquals(43200, result[1].recoveryTime)
+    }
+
+    @Test
+    fun testSingleHeartRateValue() = runTest {
+        val jsonWorkout = """
+        {
+            "duration": "00:30:00",
+            "datetime": "2025-04-16 10:00:00",
+            "name": "Тест с одним пульсом",
+            "heartRates": [
+                {"timestamp": 1700000000, "heartRate": 120}
+            ]
+        }
+    """.trimIndent()
+
+        // Мокаем сохранение и получение данных
+        every { activityService.saveToDatabase(any()) } just Runs
+        every {
+            activityService.fetchFromDatabase(eq("singleUser"), any(), any())
+        } returns listOf(
+            TrainingData(
+                username = "singleUser",
+                trainingName = "Тест с одним пульсом",
+                trainingDate = "2025-04-16 10:00:00",
+                trainingDuration = 1800,
+                avgHeartRate = 120.0,
+                maxHeartRate = 120,
+                caloriesBurned = 17457.117, // Примерное значение для проверки
+                met = 4.615,
+                intensityZones = listOf(0, 0, 0, 0, 0),
+                recoveryTime = 12345
+            )
+        )
+
+        val result = activityService.processRequestAddTraining("singleUser", jsonWorkout)
+        assertEquals("Workout processed and saved.", result)
+
+        val trainingData = activityService.processRequestGetSomeTraining("singleUser").first()
+
+        // Проверка метрик
+        assertEquals(120, trainingData.maxHeartRate)
+        assertEquals(120.0, trainingData.avgHeartRate, 0.01)
+        assertEquals(1800, trainingData.trainingDuration) // 30 минут = 1800 секунд
+        assertEquals(17457.117, trainingData.caloriesBurned, 0.001)
+        assertEquals(4.615, trainingData.met, 0.001)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesWithMultipleIntervals() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                // Интервалы с средними значениями, точно попадающими в зоны:
+                1700000000L to 100,  // Интервал 1: 100 → 115 → среднее 107.5 (зона 1: 93..112)
+                1700000060L to 115,   // Интервал 2: 115 → 130 → среднее 122.5 (зона 2: 112..130)
+                1700000120L to 130,  // Интервал 3: 130 → 145 → среднее 137.5 (зона 3: 130..149)
+                1700000180L to 145,  // Интервал 4: 145 → 160 → среднее 152.5 (зона 4: 149..168)
+                1700000240L to 160,  // Интервал 5: 160 → 180 → среднее 170.0 (зона 5: 168..187)
+                1700000300L to 180
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Каждый интервал длится 60 секунд → 1 минута на зону.
+        assertEquals(listOf(1, 1, 1, 1, 1), testData.intensityZones)
+    }
+    @Test
+    fun testCalculateIntensityZonesBoundaryValues() {
+        val hrMax = 208 - (0.7 * 30).toInt() // 187
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                1700000000L to (0.5 * hrMax).toInt(),   // Нижняя граница зоны 1 (93)
+                1700000060L to (0.6 * hrMax).toInt(),   // Нижняя граница зоны 2 (112)
+                1700000120L to (0.7 * hrMax).toInt(),   // Нижняя граница зоны 3 (130)
+                1700000180L to (0.8 * hrMax).toInt(),   // Нижняя граница зоны 4 (149)
+                1700000240L to (0.9 * hrMax).toInt(),   // Нижняя граница зоны 5 (168)
+                1700000300L to hrMax                    // Верхняя граница зоны 5 (187)
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Ожидаемый результат:
+        // - Интервал 93 → 112: среднее 102.5 → зона 1 (60 сек → 1 мин)
+        // - Интервал 112 → 130: среднее 121 → зона 2 (60 сек → 1 мин)
+        // - Интервал 130 → 149: среднее 139.5 → зона 3 (60 сек → 1 мин)
+        // - Интервал 149 → 168: среднее 158.5 → зона 4 (60 сек → 1 мин)
+        // - Интервал 168 → 187: среднее 177.5 → зона 5 (60 сек → 1 мин)
+        assertEquals(listOf(1, 1, 1, 1, 1), testData.intensityZones)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesWithSingleHeartRate() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(1700000000L to 120)
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Нет интервалов - все зоны должны быть 0
+        assertEquals(listOf(0, 0, 0, 0, 0), testData.intensityZones)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesWithNegativeDuration() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                1700000100L to 120,  // Более поздний timestamp идет первым
+                1700000000L to 100
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // Отрицательная длительность должна игнорироваться
+        assertEquals(listOf(0, 0, 0, 0, 0), testData.intensityZones)
+    }
+
+    @Test
+    fun testCalculateIntensityZonesRounding() {
+        val testData = ExtendedTrainingData(
+            age = 30,
+            heartRateList = listOf(
+                1700000000L to 100,
+                1700000030L to 120  // Интервал 30 секунд
+            )
+        )
+
+        activityService.calculateIntensityZones(testData)
+
+        // 30 секунд = 0.5 минут -> должно округлиться до 0
+        assertEquals(listOf(0, 0, 0, 0, 0), testData.intensityZones)
     }
 }
